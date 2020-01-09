@@ -1,10 +1,10 @@
-#include <X11/Xlib.h>
 #include <X11/Xatom.h>
 
 #include "wallpaper.h"
 #include "mmonitor.h"
 #include "debug.h"
 #include "imtools.h"
+#include "options.h"
 
 static void bg_filled(Pixmap pmap, Imlib_Image im, int x, int y, int w, int h) {
     int img_w = image_get_width(im);
@@ -25,22 +25,43 @@ static void bg_filled(Pixmap pmap, Imlib_Image im, int x, int y, int w, int h) {
         1, 1, 1);
 }
 
-void WESetWallpaper(Imlib_Image im) {
+void WESetWallpaperByOptions() {
     Pixmap pmap = XCreatePixmap(disp, root, scr->width, scr->height, depth);
+    WEMonitor *wms;
+    int wmn;
 
     // render image to pixmap
     D("Requiring Monitor list");
-    WEMonitor *wms;
-    int wmn;
     WEGetMonitorList(disp, root, &wms, &wmn);
-    for (int i = 0; i < wmn; ++i) {
-        D("Rendering image on monitor %d (%dx%d+%d+%d)",
-                i, wms[i].width, wms[i].height, wms[i].x, wms[i].y);
 
+    Imlib_Image im;
+
+    if (!opts.monitor_specific) {
+        im = imlib_load_image(opts.monitor[0]);
+        assert(im, "Can not load %s", opts.monitor[0]);
+    }
+
+    for (int i = 0; i < wmn; ++i) {
+        if (opts.monitor_specific) {
+            im = imlib_load_image(opts.monitor[i]);
+            assert(im, "Can not load %s", opts.monitor[i]);
+            D("Rendering image %s on monitor %d (%dx%d+%d+%d)",
+                    opts.monitor[i], i,
+                    wms[i].width, wms[i].height, wms[i].x, wms[i].y);
+        } else {
+            D("Rendering image %s on monitor %d (%dx%d+%d+%d)",
+                    opts.monitor[0], i,
+                    wms[i].width, wms[i].height, wms[i].x, wms[i].y);
+        }
         bg_filled(pmap, im, wms[i].x, wms[i].y, wms[i].width, wms[i].height);
     }
-    WEFreeMonitorList(wms);
+    WESetWallpaper(pmap);
 
+    WEFreeMonitorList(wms);
+}
+
+
+void WESetWallpaper(Pixmap pmap) {
     // get property if has, or return None
     Atom prop_root = XInternAtom(disp, "_XROOTPMAP_ID", True);
     Atom prop_esetroot = XInternAtom(disp, "ESETROOT_PMAP_ID", True);
@@ -60,7 +81,6 @@ void WESetWallpaper(Imlib_Image im) {
         // same pixmap ?
         if (type_root == XA_PIXMAP && type_esetroot == XA_PIXMAP) {
             if (*(Pixmap*)data_root == *(Pixmap*)data_esetroot) {
-                // Free useless pixmap
                 D("Free usless pixmap");
                 XKillClient(disp, *((Pixmap *) data_root));
             }

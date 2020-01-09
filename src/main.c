@@ -1,19 +1,27 @@
-#include <Imlib2.h>
-
 #include "wallpaper.h"
-#include "debug.h"
 #include "imtools.h"
+#include "options.h"
+#include "mmonitor.h"
 
 
 int main(int argc, char** argv) {
-    assert(argc == 2, "usage: %s <image_file>", argv[0]);
+    parse_opts(argc, argv);
 
     init_x_and_imtools();
 
-    Imlib_Image img = imlib_load_image(argv[1]);
-    assert(img, "Unable to load %s", argv[1]);
-
-    WESetWallpaper(img);
+    if (opts.list_monitors) {
+        WEMonitor *wms;
+        int wmn;
+        WEGetMonitorList(disp, root, &wms, &wmn);
+        printf("Monitor List:\n");
+        for (int i = 0; i < wmn; ++i) {
+            printf("\tm%d : %dx%d\t%d+%d\n", i,
+                    wms[i].width, wms[i].height, wms[i].x, wms[i].y);
+        }
+        WEFreeMonitorList(wms);
+        return 0;
+    }
+    WESetWallpaperByOptions();
 
     destruct_imtools();
     return 0;
