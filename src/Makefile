@@ -19,6 +19,9 @@ release : $(EXEC_NAME)
 $(EXEC_NAME) : $(TARGETS)
 	$(CC) $(LDLIBS) $(TARGETS) -o $@ 
 
+options.o : options.c options.h debug.h help.inc
+	$(CC) $(CFLAGS) $< -o $@
+
 %.o : %.c %.h debug.h
 	$(CC) $(CFLAGS) $< -o $@
 
