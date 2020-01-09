@@ -4,7 +4,7 @@ default : $(EXEC_NAME)
 
 $(EXEC_NAME): 
 	@make -C src
-	@cp src/now .
+	@cp src/$(EXEC_NAME) .
 
 clean :
 	@rm -f $(EXEC_NAME)
