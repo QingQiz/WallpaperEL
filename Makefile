@@ -10,4 +10,4 @@ clean :
 	@rm -f $(EXEC_NAME)
 	@make -C src clean
 
-.PHONY : default
+.PHONY : default $(EXEC_NAME)
