@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include "string.h"
 
 #include "options.h"
 #include "debug.h"
@@ -13,11 +14,10 @@ we_option opts;
 
 
 static void init_opts() {
-    int i;
     opts.list_monitors = 0;
+    opts.monitor_specific = 0;
 
-    for (i = 0; i < MAX_MONITOR_N; ++i)
-        opts.monitor[i] = NULL;
+    memset(opts.monitor, 0, sizeof(opts.monitor));
 }
 
 static void usage() {
@@ -27,7 +27,7 @@ static void usage() {
     exit(-1);
 }
 
-void proc_opts(int argc, char**argv) {
+void parse_opts(int argc, char**argv) {
     if (argc == 1) usage();
 
     init_opts();
@@ -37,7 +37,7 @@ void proc_opts(int argc, char**argv) {
 
     while (1) {
         optret = getopt_long(argc, argv, "hm:", long_options, &l_optidx);
-        if (optret == -1) return;
+        if (optret == -1) break;
 
         switch (optret) {
             case LIST_MONITORS:
@@ -45,6 +45,11 @@ void proc_opts(int argc, char**argv) {
                 D("opt list-monitors set");
                 break;
             case 'm':
+                if (*optarg == 'l') {
+                    opts.list_monitors = 1;
+                    break;
+                }
+
                 monitor_n = atoi(optarg);
 
                 assert(monitor_n < MAX_MONITOR_N && monitor_n >= 0,
@@ -55,10 +60,14 @@ void proc_opts(int argc, char**argv) {
 
                 opts.monitor[monitor_n] = argv[optind + 1];
                 D("monitor %d set to %s", monitor_n, argv[optind]);
+                opts.monitor_specific = 1;
                 break;
             case 'h':
             default:
                 usage();
         }
+    }
+    if (!opts.monitor_specific) {
+        opts.monitor[0] = argv[argc - 1];
     }
 }

@@ -7,6 +7,7 @@
 typedef struct {
     char list_monitors;
 
+    char  monitor_specific;
     char* monitor[MAX_MONITOR_N];
 } we_option;
 
@@ -17,6 +18,6 @@ enum we_long_opt {
 extern we_option opts;
 
 
-void proc_opts(int argc, char**argv);
+void parse_opts(int argc, char**argv);
 #endif
 
