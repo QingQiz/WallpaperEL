@@ -58,7 +58,7 @@ void parse_opts(int argc, char**argv) {
                 assert(optind < argc && argv[optind][0] != '-',
                         "-m%d: require a file", monitor_n);
 
-                opts.monitor[monitor_n] = argv[optind + 1];
+                opts.monitor[monitor_n] = argv[optind];
                 D("monitor %d set to %s", monitor_n, argv[optind]);
                 opts.monitor_specific = 1;
                 break;
