@@ -10,7 +10,10 @@ Colormap cm;
 int depth;
 Atom wmDeleteWindow;
 Window root = 0;
+WEMonitor *monitor_l;
+int monitor_n;
 
+static Imlib_Image im_alpha = NULL;
 
 void init_x_and_imtools() {
     disp = XOpenDisplay(NULL);
@@ -32,10 +35,17 @@ void init_x_and_imtools() {
     wmDeleteWindow = XInternAtom(disp, "WM_DELETE_WINDOW", False);
 
     imlib_set_cache_size(4 * 1024 * 1024);
+
+    im_alpha = imlib_create_image(scr->width, scr->height);
+    imlib_context_set_image(im_alpha);
+    imlib_image_set_has_alpha(1);
+
+    WEGetMonitorList(disp, root, &monitor_l, &monitor_n);
 }
 
 void destruct_imtools() {
     XCloseDisplay(disp);
+    WEFreeMonitorList(monitor_l);
     disp = NULL, vis = NULL, scr = NULL, root = 0;
 }
 
@@ -47,6 +57,20 @@ int image_get_width(Imlib_Image im) {
 int image_get_height(Imlib_Image im) {
    imlib_context_set_image(im);
    return imlib_image_get_height();
+}
+
+void image_set_alpha(Imlib_Image im, int alpha) {
+    imlib_context_set_image(im);
+    int h = imlib_image_get_height();
+    int w = imlib_image_get_width();
+
+    imlib_context_set_image(im_alpha);
+    imlib_context_set_color(0, 0, 0, alpha);
+    imlib_image_fill_rectangle(0, 0, w, h);
+
+    imlib_context_set_image(im);
+    imlib_image_set_has_alpha(1);
+    imlib_image_copy_alpha_to_image(im_alpha, 0, 0);
 }
 
 void render_image_part_on_drawable_at_size(

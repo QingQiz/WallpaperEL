@@ -2,6 +2,7 @@
 #define _IMTOOLS_H
 
 #include <Imlib2.h>
+#include "mmonitor.h"
 
 
 void init_x_and_imtools();
@@ -11,6 +12,8 @@ void destruct_imtools();
 int image_get_width(Imlib_Image im);
 
 int image_get_height(Imlib_Image im);
+
+void image_set_alpha(Imlib_Image im, int alpha);
 
 void render_image_part_on_drawable_at_size(
     Drawable d,
@@ -32,6 +35,7 @@ extern Colormap cm;
 extern int depth;
 extern Atom wmDeleteWindow;
 extern Window root;
-
+extern WEMonitor *monitor_l;
+extern int monitor_n;
 #endif
 
