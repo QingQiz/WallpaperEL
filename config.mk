@@ -1,2 +1,2 @@
 EXEC_NAME = we
-VERSION = v0.1.1
+VERSION = v0.1.2
