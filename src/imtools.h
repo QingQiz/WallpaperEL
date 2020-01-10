@@ -27,6 +27,8 @@ void render_image_part_on_drawable_at_size(
     char alias
 );
 
+void copy_pixmap(Pixmap pm_d, Pixmap pm_s);
+
 
 extern Display *disp;
 extern Visual *vis;

@@ -1,4 +1,5 @@
 #include <X11/Xatom.h>
+#include <unistd.h>
 
 #include "wallpaper.h"
 #include "mmonitor.h"
@@ -57,42 +58,83 @@ Pixmap WEGetCurrentPixmapOrCreate() {
     return XCreatePixmap(disp, root, scr->width, scr->height, depth);
 }
 
+void WERenderAllMonitorToPixmap(Pixmap pmap, int alpha) {
+    static Imlib_Image im_m[MAX_MONITOR_N], im_else, im;
+    static char img_loaded = 0;
 
-void WESetWallpaperByOptions() {
-    WEMonitor *wms;
-    int wmn;
-    Pixmap pmap = WEGetCurrentPixmapOrCreate();
-
-    // render image to pixmap
-    D("Requiring Monitor list");
-    WEGetMonitorList(disp, root, &wms, &wmn);
-
-    Imlib_Image im, im_else;
-
-    if (opts.else_monitor != NULL) {
-        im_else = imlib_load_image(opts.else_monitor);
-        assert(im_else, "Can not load %s", opts.else_monitor);
+    // load all images
+    if (img_loaded == 0) {
+        for (int i = 0; i < MAX_MONITOR_N; ++i) {
+            if (opts.monitor[i] == NULL) {
+                continue;
+            } else {
+                im_m[i] = imlib_load_image(opts.monitor[i]);
+                assert(im_m[i], "Can not load %s", opts.monitor[i]);
+            }
+        }
+        if (opts.else_monitor != NULL) {
+            im_else = imlib_load_image(opts.else_monitor);
+            assert(im_else, "Can not load %s", opts.else_monitor);
+        }
+        img_loaded = 1;
     }
 
-    for (int i = 0; i < wmn; ++i) {
-        if (opts.monitor[i] == NULL) {
+    for (int j = 0; j < monitor_n; ++j) {
+        if (opts.monitor[j] == NULL) {
             if (opts.else_monitor == NULL) {
                 continue;
             } else {
-                D("Rendering image %s on monitor %d (%dx%d+%d+%d)", opts.else_monitor, i, wms[i].width, wms[i].height, wms[i].x, wms[i].y);
                 im = im_else;
             }
         } else {
-            im = imlib_load_image(opts.monitor[i]);
-            assert(im, "Can not load %s", opts.monitor[i]);
-            D("Rendering image %s on monitor %d (%dx%d+%d+%d)", opts.monitor[i], i, wms[i].width, wms[i].height, wms[i].x, wms[i].y);
+            im = im_m[j];
         }
-
-        bg_filled(pmap, im, wms[i].x, wms[i].y, wms[i].width, wms[i].height);
+        image_set_alpha(im, alpha);
+        bg_filled(pmap, im, monitor_l[j].x, monitor_l[j].y, monitor_l[j].width, monitor_l[j].height);
     }
-    WESetWallpaper(pmap);
+}
 
-    WEFreeMonitorList(wms);
+void WERenderFIFO(Pixmap **pmap_l, int *pmap_n) {
+    static Pixmap fifo[FIFO_SETP + 1], pmap;
+
+    pmap = WEGetCurrentPixmapOrCreate();
+    fifo[FIFO_SETP] = 0;
+
+    // copy pixmap in use to fifo[0]
+    fifo[0] = XCreatePixmap(disp, root, scr->width, scr->height, depth);
+    copy_pixmap(fifo[0], pmap);
+
+    // create pixmap for all fade in fade out steps
+    for (int i = 1; i < FIFO_SETP; ++i) {
+        fifo[i] = XCreatePixmap(disp, root, scr->width, scr->height, depth);
+        WERenderAllMonitorToPixmap(fifo[0], 16);
+        copy_pixmap(fifo[i], fifo[0]);
+    }
+
+    // free useless pixmap
+    XFreePixmap(disp, fifo[0]);
+    XFreePixmap(disp, pmap);
+
+    *pmap_l = fifo + 1;
+    *pmap_n = FIFO_SETP - 1;
+}
+
+
+void WESetWallpaperByOptions() {
+    if (opts.fifo) {
+        Pixmap *fifo_l;
+        int fifo_n;
+        WERenderFIFO(&fifo_l, &fifo_n);
+        for (int i = 0; i < fifo_n; ++i) {
+            if (i != 0) XFreePixmap(disp, fifo_l[i - 1]);
+            WESetWallpaper(fifo_l[i]);
+            usleep((int)(0.05f * 1000000));
+        }
+    } else {
+        Pixmap pmap = WEGetCurrentPixmapOrCreate();
+        WERenderAllMonitorToPixmap(pmap, 255);
+        WESetWallpaper(pmap);
+    }
 }
 
 
@@ -109,7 +151,6 @@ void WESetWallpaper(Pixmap pmap) {
                     PropModeReplace, (unsigned char *) &pmap, 1);
     XSetWindowBackgroundPixmap(disp, root, pmap);
 
-    D("Draw");
     // clear old wallpaper
     XClearWindow(disp, root);
     // draw new wallpaper

@@ -9,8 +9,9 @@
 " -mX FILE                       Specify FILE as the wallpaper for monitor X\n"
 "              --else FILE       If this option is set, all monitors\n"
 "                                not specified by -mX will use FILE\n"
+"              --fifo            Set the transition effect of the RGBA picture to fade in\n"
 "\n"
 "EXAMPLE\n"
-" " PACKAGE " -m0 image1.jpg -m2 image2.jpg --else image3.png\n"
+" " PACKAGE " -m0 image1.jpg -m2 image2.jpg --else image3.png --fifo\n"
 "\n"
 

@@ -6,16 +6,18 @@
 #include "debug.h"
 
 static struct option long_options[] = {
-    {"list-monitors", no_argument, 0, WE_LIST_MONITORS},
-    {"else", required_argument, 0, WE_ELSE},
-    {"help",          no_argument, 0, 'h'},
-    {0,               0,           0, 0},
+    {"list-monitors", no_argument,       0, WE_LIST_MONITORS},
+    {"else",          required_argument, 0, WE_ELSE},
+    {"fifo",          no_argument,       0, WE_FADE_IN_FADE_OUT},
+    {"help",          no_argument,       0, 'h'},
+    {0,               0,                 0, 0},
 };
 we_option opts;
 
 
 static void init_opts() {
     opts.list_monitors = 0;
+    opts.fifo = 0;
 
     opts.else_monitor = NULL;
     memset(opts.monitor, 0, sizeof(opts.monitor));
@@ -47,6 +49,9 @@ void parse_opts(int argc, char**argv) {
                 break;
             case WE_ELSE:
                 opts.else_monitor = optarg;
+                break;
+            case WE_FADE_IN_FADE_OUT:
+                opts.fifo = 1;
                 break;
             case 'm':
                 if (*optarg == 'l') {

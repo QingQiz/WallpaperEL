@@ -9,11 +9,14 @@ typedef struct {
 
     char* monitor[MAX_MONITOR_N];
     char* else_monitor;
+
+    char fifo;
 } we_option;
 
 enum we_long_opt {
     WE_LIST_MONITORS = 1,
     WE_ELSE,
+    WE_FADE_IN_FADE_OUT,
 };
 
 extern we_option opts;

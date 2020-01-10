@@ -93,3 +93,13 @@ void render_image_part_on_drawable_at_size(
     imlib_render_image_part_on_drawable_at_size(sx, sy, sw, sh, dx, dy, dw, dh);
 }
 
+void copy_pixmap(Pixmap pm_d, Pixmap pm_s) {
+    static XGCValues gcvalues;
+    static GC gc;
+
+    gcvalues.fill_style = FillTiled;
+    gcvalues.tile = pm_s;
+    gc = XCreateGC(disp, pm_d, GCFillStyle | GCTile, &gcvalues);
+    XFillRectangle(disp, pm_d, gc, 0, 0, scr->width, scr->height);
+    XFreeGC(disp, gc);
+}
