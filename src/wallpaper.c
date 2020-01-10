@@ -25,10 +25,43 @@ static void bg_filled(Pixmap pmap, Imlib_Image im, int x, int y, int w, int h) {
         1, 1, 1);
 }
 
+Pixmap WEGetCurrentPixmapOrCreate() {
+    // get property if has, or return None
+    Atom prop_root = XInternAtom(disp, "_XROOTPMAP_ID", True);
+    Atom prop_esetroot = XInternAtom(disp, "ESETROOT_PMAP_ID", True);
+
+    // has property ?
+    if (prop_root != None && prop_esetroot != None) {
+        Atom type_root, type_esetroot;
+        unsigned long length, after;
+        int format;
+        unsigned char *data_root = NULL, *data_esetroot = NULL;
+
+        XGetWindowProperty(disp, root, prop_root, 0L, 1L, False, XA_PIXMAP,
+                    &type_root, &format, &length, &after, &data_root);
+        XGetWindowProperty(disp, root, prop_esetroot, 0L, 1L, False, XA_PIXMAP,
+                    &type_esetroot, &format, &length, &after, &data_esetroot);
+
+        // same pixmap ?
+        if (data_root && *(Pixmap*)data_root == *(Pixmap*)data_esetroot) {
+            Pixmap pmap = *(Pixmap*)data_root;
+
+            if (data_root) XFree(data_root);
+            if (data_esetroot) XFree(data_esetroot);
+
+            return pmap;
+        }
+        if (data_root) XFree(data_root);
+        if (data_esetroot) XFree(data_esetroot);
+    }
+    return XCreatePixmap(disp, root, scr->width, scr->height, depth);
+}
+
+
 void WESetWallpaperByOptions() {
-    Pixmap pmap = XCreatePixmap(disp, root, scr->width, scr->height, depth);
     WEMonitor *wms;
     int wmn;
+    Pixmap pmap = WEGetCurrentPixmapOrCreate();
 
     // render image to pixmap
     D("Requiring Monitor list");
@@ -43,15 +76,14 @@ void WESetWallpaperByOptions() {
 
     for (int i = 0; i < wmn; ++i) {
         if (opts.monitor_specific) {
+            if (opts.monitor[i] == NULL) continue;
+
             im = imlib_load_image(opts.monitor[i]);
             assert(im, "Can not load %s", opts.monitor[i]);
-            D("Rendering image %s on monitor %d (%dx%d+%d+%d)",
-                    opts.monitor[i], i,
-                    wms[i].width, wms[i].height, wms[i].x, wms[i].y);
+
+            D("Rendering image %s on monitor %d (%dx%d+%d+%d)", opts.monitor[i], i, wms[i].width, wms[i].height, wms[i].x, wms[i].y);
         } else {
-            D("Rendering image %s on monitor %d (%dx%d+%d+%d)",
-                    opts.monitor[0], i,
-                    wms[i].width, wms[i].height, wms[i].x, wms[i].y);
+            D("Rendering image %s on monitor %d (%dx%d+%d+%d)", opts.monitor[0], i, wms[i].width, wms[i].height, wms[i].x, wms[i].y);
         }
         bg_filled(pmap, im, wms[i].x, wms[i].y, wms[i].width, wms[i].height);
     }
@@ -62,36 +94,8 @@ void WESetWallpaperByOptions() {
 
 
 void WESetWallpaper(Pixmap pmap) {
-    // get property if has, or return None
-    Atom prop_root = XInternAtom(disp, "_XROOTPMAP_ID", True);
-    Atom prop_esetroot = XInternAtom(disp, "ESETROOT_PMAP_ID", True);
-
-    // has property ?
-    if (prop_root != None && prop_esetroot != None) {
-        Atom type_root, type_esetroot;
-        unsigned long length, after;
-        int format;
-        unsigned char *data_root = NULL, *data_esetroot = NULL;
-
-        XGetWindowProperty(disp, root, prop_root, 0L, 1L, False, AnyPropertyType,
-                    &type_root, &format, &length, &after, &data_root);
-        XGetWindowProperty(disp, root, prop_esetroot, 0L, 1L, False, AnyPropertyType,
-                    &type_esetroot, &format, &length, &after, &data_esetroot);
-
-        // same pixmap ?
-        if (type_root == XA_PIXMAP && type_esetroot == XA_PIXMAP) {
-            if (*(Pixmap*)data_root == *(Pixmap*)data_esetroot) {
-                D("Free usless pixmap");
-                XKillClient(disp, *((Pixmap *) data_root));
-            }
-        }
-        if (data_root) XFree(data_root);
-        if (data_esetroot) XFree(data_esetroot);
-    }
-
-    // get or create property
-    prop_root = XInternAtom(disp, "_XROOTPMAP_ID", False);
-    prop_esetroot = XInternAtom(disp, "ESETROOT_PMAP_ID", False);
+    Atom prop_root = XInternAtom(disp, "_XROOTPMAP_ID", False);
+    Atom prop_esetroot = XInternAtom(disp, "ESETROOT_PMAP_ID", False);
 
     assert(prop_root != None && prop_esetroot != None, "creation of pixmap property failed.");
 

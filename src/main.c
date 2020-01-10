@@ -1,3 +1,5 @@
+#include <stdio.h>
+
 #include "wallpaper.h"
 #include "imtools.h"
 #include "options.h"
