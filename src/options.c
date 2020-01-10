@@ -6,7 +6,8 @@
 #include "debug.h"
 
 static struct option long_options[] = {
-    {"list-monitors", no_argument, 0, LIST_MONITORS},
+    {"list-monitors", no_argument, 0, WE_LIST_MONITORS},
+    {"else", required_argument, 0, WE_ELSE},
     {"help",          no_argument, 0, 'h'},
     {0,               0,           0, 0},
 };
@@ -15,8 +16,8 @@ we_option opts;
 
 static void init_opts() {
     opts.list_monitors = 0;
-    opts.monitor_specific = 0;
 
+    opts.else_monitor = NULL;
     memset(opts.monitor, 0, sizeof(opts.monitor));
 }
 
@@ -40,9 +41,12 @@ void parse_opts(int argc, char**argv) {
         if (optret == -1) break;
 
         switch (optret) {
-            case LIST_MONITORS:
+            case WE_LIST_MONITORS:
                 opts.list_monitors = 1;
                 D("opt list-monitors set");
+                break;
+            case WE_ELSE:
+                opts.else_monitor = optarg;
                 break;
             case 'm':
                 if (*optarg == 'l') {
@@ -60,14 +64,10 @@ void parse_opts(int argc, char**argv) {
 
                 opts.monitor[monitor_n] = argv[optind];
                 D("monitor %d set to %s", monitor_n, argv[optind]);
-                opts.monitor_specific = 1;
                 break;
             case 'h':
             default:
                 usage();
         }
-    }
-    if (!opts.monitor_specific) {
-        opts.monitor[0] = argv[argc - 1];
     }
 }

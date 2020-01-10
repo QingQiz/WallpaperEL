@@ -67,24 +67,27 @@ void WESetWallpaperByOptions() {
     D("Requiring Monitor list");
     WEGetMonitorList(disp, root, &wms, &wmn);
 
-    Imlib_Image im;
+    Imlib_Image im, im_else;
 
-    if (!opts.monitor_specific) {
-        im = imlib_load_image(opts.monitor[0]);
-        assert(im, "Can not load %s", opts.monitor[0]);
+    if (opts.else_monitor != NULL) {
+        im_else = imlib_load_image(opts.else_monitor);
+        assert(im_else, "Can not load %s", opts.else_monitor);
     }
 
     for (int i = 0; i < wmn; ++i) {
-        if (opts.monitor_specific) {
-            if (opts.monitor[i] == NULL) continue;
-
+        if (opts.monitor[i] == NULL) {
+            if (opts.else_monitor == NULL) {
+                continue;
+            } else {
+                D("Rendering image %s on monitor %d (%dx%d+%d+%d)", opts.else_monitor, i, wms[i].width, wms[i].height, wms[i].x, wms[i].y);
+                im = im_else;
+            }
+        } else {
             im = imlib_load_image(opts.monitor[i]);
             assert(im, "Can not load %s", opts.monitor[i]);
-
             D("Rendering image %s on monitor %d (%dx%d+%d+%d)", opts.monitor[i], i, wms[i].width, wms[i].height, wms[i].x, wms[i].y);
-        } else {
-            D("Rendering image %s on monitor %d (%dx%d+%d+%d)", opts.monitor[0], i, wms[i].width, wms[i].height, wms[i].x, wms[i].y);
         }
+
         bg_filled(pmap, im, wms[i].x, wms[i].y, wms[i].width, wms[i].height);
     }
     WESetWallpaper(pmap);

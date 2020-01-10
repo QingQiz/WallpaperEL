@@ -7,12 +7,13 @@
 typedef struct {
     char list_monitors;
 
-    char  monitor_specific;
     char* monitor[MAX_MONITOR_N];
+    char* else_monitor;
 } we_option;
 
 enum we_long_opt {
-    LIST_MONITORS = 1,
+    WE_LIST_MONITORS = 1,
+    WE_ELSE,
 };
 
 extern we_option opts;
