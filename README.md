@@ -17,6 +17,6 @@ make
 ## Usage
 
 ```shell
-./we <image_file>
+./we --help
 ```
 
