@@ -11,7 +11,7 @@
 ## Install
 
 ```shell
-make
+make release
 ```
 
 ## Usage
@@ -19,4 +19,10 @@ make
 ```shell
 ./we --help
 ```
+
+## Features
+
+- Set wallpaper for some specific monitors
+- fade in and fade out when set wallpaper
+
 
