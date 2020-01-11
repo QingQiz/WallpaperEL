@@ -31,7 +31,7 @@ static void usage() {
 }
 
 void parse_opts(int argc, char**argv) {
-    if (argc == 1) usage();
+    char is_opt_set = 0;
 
     init_opts();
 
@@ -42,6 +42,7 @@ void parse_opts(int argc, char**argv) {
         optret = getopt_long(argc, argv, "hm:", long_options, &l_optidx);
         if (optret == -1) break;
 
+        is_opt_set = 1;
         switch (optret) {
             case WE_LIST_MONITORS:
                 opts.list_monitors = 1;
@@ -75,4 +76,5 @@ void parse_opts(int argc, char**argv) {
                 usage();
         }
     }
+    if (!is_opt_set) usage();
 }
