@@ -10,6 +10,8 @@ debug :
 	@make -C src release
 	@cp src/$(EXEC_NAME) .
 
+install :
+	cp ./$(EXEC_NAME) $(INSTALL_DIR)
 
 clean :
 	@rm -f $(EXEC_NAME)
