@@ -155,7 +155,5 @@ void WESetWallpaper(Pixmap pmap) {
     XClearWindow(disp, root);
     // draw new wallpaper
     XFlush(disp);
-    // do not free pmap after exit
-    XSetCloseDownMode(disp, RetainPermanent);
 }
 

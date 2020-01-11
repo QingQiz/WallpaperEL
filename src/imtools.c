@@ -41,9 +41,14 @@ void init_x_and_imtools() {
     imlib_image_set_has_alpha(1);
 
     WEGetMonitorList(disp, root, &monitor_l, &monitor_n);
+
+    // free all if exit abnormally
+    XSetCloseDownMode(disp, DestroyAll);
 }
 
 void destruct_imtools() {
+    // do not free pixmap after exit
+    XSetCloseDownMode(disp, RetainPermanent);
     XCloseDisplay(disp);
     WEFreeMonitorList(monitor_l);
     disp = NULL, vis = NULL, scr = NULL, root = 0;
