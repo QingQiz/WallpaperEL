@@ -68,13 +68,13 @@ void WERenderAllMonitorToPixmap(Pixmap pmap, int alpha) {
             if (opts.monitor[i] == NULL) {
                 continue;
             } else {
-                im_m[i] = imlib_load_image(opts.monitor[i]);
-                assert(im_m[i], "Can not load %s", opts.monitor[i]);
+                im_m[i] = imlib_load_image(opts.monitor[i]->file_name);
+                assert(im_m[i], "Can not load %s", opts.monitor[i]->file_name);
             }
         }
         if (opts.else_monitor != NULL) {
-            im_else = imlib_load_image(opts.else_monitor);
-            assert(im_else, "Can not load %s", opts.else_monitor);
+            im_else = imlib_load_image(opts.else_monitor->file_name);
+            assert(im_else, "Can not load %s", opts.else_monitor->file_name);
         }
         img_loaded = 1;
     }

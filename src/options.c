@@ -7,7 +7,7 @@
 
 static struct option long_options[] = {
     {"list-monitors", no_argument,       0, WE_LIST_MONITORS},
-    {"else",          required_argument, 0, WE_ELSE},
+    {"else",          no_argument,       0, WE_ELSE},
     {"fifo",          no_argument,       0, WE_FADE_IN_FADE_OUT},
     {"help",          no_argument,       0, 'h'},
     {0,               0,                 0, 0},
@@ -30,16 +30,30 @@ static void usage() {
     exit(-1);
 }
 
+static file_list* create_file_list_by_options(int argc, char **argv) {
+    file_list *head = (file_list*)malloc(sizeof(file_list));
+    file_list *iter = head;
+    iter->file_name = argv[optind++];
+
+    while (optind < argc && argv[optind][0] != '-') {
+        iter->next = (file_list*)malloc(sizeof(file_list));
+        iter = iter->next;
+        iter->file_name = argv[optind++];
+    }
+    iter->next = head;
+    return head;
+}
+
 void parse_opts(int argc, char**argv) {
     char is_opt_set = 0;
 
     init_opts();
 
     int optret, l_optidx;
-    int monitor_n;
+    int mi;
 
     while (1) {
-        optret = getopt_long(argc, argv, "hm:", long_options, &l_optidx);
+        optret = getopt_long(argc, argv, "hm:t:", long_options, &l_optidx);
         if (optret == -1) break;
 
         is_opt_set = 1;
@@ -49,7 +63,7 @@ void parse_opts(int argc, char**argv) {
                 D("opt list-monitors set");
                 break;
             case WE_ELSE:
-                opts.else_monitor = optarg;
+                opts.else_monitor = create_file_list_by_options(argc, argv);
                 break;
             case WE_FADE_IN_FADE_OUT:
                 opts.fifo = 1;
@@ -59,17 +73,16 @@ void parse_opts(int argc, char**argv) {
                     opts.list_monitors = 1;
                     break;
                 }
+                mi = atoi(optarg);
 
-                monitor_n = atoi(optarg);
+                assert(mi < MAX_MONITOR_N && mi >= 0, "-m%d: index error, no such monitor", mi);
+                assert(optind < argc && argv[optind][0] != '-', "-m%d: require a file or file list", mi);
 
-                assert(monitor_n < MAX_MONITOR_N && monitor_n >= 0,
-                        "-m%d: index error", monitor_n);
+                opts.monitor[mi] = create_file_list_by_options(argc, argv);
 
-                assert(optind < argc && argv[optind][0] != '-',
-                        "-m%d: require a file", monitor_n);
-
-                opts.monitor[monitor_n] = argv[optind];
-                D("monitor %d set to %s", monitor_n, argv[optind]);
+                break;
+            case 't':
+                opts.dt = atof(optarg);
                 break;
             case 'h':
             default:
