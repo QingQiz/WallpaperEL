@@ -12,8 +12,7 @@ typedef struct file_list_s {
 typedef struct {
     char list_monitors;
 
-    file_list* monitor[MAX_MONITOR_N];
-    file_list* else_monitor;
+    file_list* monitor[MAX_MONITOR_N + 1];
 
     char fifo;
 

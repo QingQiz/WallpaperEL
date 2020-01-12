@@ -4,6 +4,7 @@
 
 #include "options.h"
 #include "debug.h"
+#include "imtools.h"
 
 static struct option long_options[] = {
     {"list-monitors", no_argument,       0, WE_LIST_MONITORS},
@@ -18,8 +19,8 @@ we_option opts;
 static void init_opts() {
     opts.list_monitors = 0;
     opts.fifo = 0;
+    opts.dt = 60;
 
-    opts.else_monitor = NULL;
     memset(opts.monitor, 0, sizeof(opts.monitor));
 }
 
@@ -63,7 +64,7 @@ void parse_opts(int argc, char**argv) {
                 D("opt list-monitors set");
                 break;
             case WE_ELSE:
-                opts.else_monitor = create_file_list_by_options(argc, argv);
+                opts.monitor[MAX_MONITOR_N] = create_file_list_by_options(argc, argv);
                 break;
             case WE_FADE_IN_FADE_OUT:
                 opts.fifo = 1;
@@ -75,7 +76,7 @@ void parse_opts(int argc, char**argv) {
                 }
                 mi = atoi(optarg);
 
-                assert(mi < MAX_MONITOR_N && mi >= 0, "-m%d: index error, no such monitor", mi);
+                assert(mi < monitor_n && mi >= 0, "-m%d: index error, no such monitor", mi);
                 assert(optind < argc && argv[optind][0] != '-', "-m%d: require a file or file list", mi);
 
                 opts.monitor[mi] = create_file_list_by_options(argc, argv);
