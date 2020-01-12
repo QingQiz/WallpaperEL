@@ -6,7 +6,7 @@
 Display *disp = NULL;
 Visual *vis = NULL;
 Screen *scr = NULL;
-Colormap cm;
+Pixmap oldclient;
 int depth;
 Atom wmDeleteWindow;
 Window root = 0;
@@ -21,13 +21,12 @@ void init_x_and_imtools() {
 
     vis   = DefaultVisual  (disp, DefaultScreen(disp));
     depth = DefaultDepth   (disp, DefaultScreen(disp));
-    cm    = DefaultColormap(disp, DefaultScreen(disp));
     root  = RootWindow     (disp, DefaultScreen(disp));
     scr   = ScreenOfDisplay(disp, DefaultScreen(disp));
 
+    oldclient = 0;
     imlib_context_set_display(disp);
     imlib_context_set_visual(vis);
-    imlib_context_set_colormap(cm);
     imlib_context_set_color_modifier(NULL);
     imlib_context_set_progress_function(NULL);
     imlib_context_set_operation(IMLIB_OP_COPY);
@@ -49,7 +48,9 @@ void init_x_and_imtools() {
 void destruct_imtools() {
     // do not free pixmap after exit
     XSetCloseDownMode(disp, RetainPermanent);
+    if (oldclient) XKillClient(disp, oldclient);
     XCloseDisplay(disp);
+
     WEFreeMonitorList(monitor_l);
     disp = NULL, vis = NULL, scr = NULL, root = 0;
 }

@@ -33,11 +33,11 @@ void copy_pixmap(Pixmap pm_d, Pixmap pm_s);
 extern Display *disp;
 extern Visual *vis;
 extern Screen *scr;
-extern Colormap cm;
 extern int depth;
 extern Atom wmDeleteWindow;
 extern Window root;
 extern WEMonitor *monitor_l;
 extern int monitor_n;
+extern Pixmap oldclient;
 #endif
 
