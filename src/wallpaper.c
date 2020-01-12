@@ -117,9 +117,11 @@ void WELoadImageByStep() {
             image_list *piter = phead;
 
             if (opts.dt < 1.5) {
+                D("load all image");
                 piter->im = imlib_load_image(fiter->file_name);
                 assert(piter->im, "Can not load %s", opts.monitor[i]->file_name);
             } else {
+                D("lazy load");
                 piter->im = NULL;
             }
             fiter = fiter->next;
@@ -218,6 +220,7 @@ Pixmap WERenderImageToPixmap(Pixmap origin) {
 
     pixmap_list *head = pmap_l;
     if (opts.dt < 1.5) {
+        D("render all");
         pmap_l->pmap = XCreatePixmap(disp, root, scr->width, scr->width, depth);
         WELoadImageByStep();
         copy_pixmap(pmap_l->pmap, origin);
@@ -237,6 +240,7 @@ Pixmap WERenderImageToPixmap(Pixmap origin) {
         pmap_l = pmap_l->next;
         return head->pmap;
     } else {
+        D("lazy render");
         int cnt = opts.fifo ? FIFO_SETP : 1;
         WELoadImageByStep();
 

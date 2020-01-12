@@ -7,10 +7,9 @@
 
 
 int main(int argc, char** argv) {
-    parse_opts(argc, argv);
-
     init_x_and_imtools();
 
+    parse_opts(argc, argv);
     if (opts.list_monitors) {
         printf("Monitor List:\n");
         for (int i = 0; i < monitor_n; ++i) {
