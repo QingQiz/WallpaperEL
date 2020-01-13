@@ -12,17 +12,24 @@
 
 ```shell
 make release
+sudo make install
 ```
 
 ## Usage
 
 ```shell
-./we --help
+we --help
 ```
 
 ## Features
 
-- Set wallpaper for some specific monitors
+- Set wallpaper
+- wallpaper slideshow
 - fade in and fade out when set wallpaper
 
+## TODO
+
+- more filling method
+- convert RGB image to RGBA image to support fifo
+- set a video file as wallpaper
 
