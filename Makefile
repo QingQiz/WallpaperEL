@@ -7,7 +7,7 @@ release :
 	@cp src/$(EXEC_NAME) .
 
 debug :
-	@make -C src release
+	@make -C src
 	@cp src/$(EXEC_NAME) .
 
 install :
