@@ -288,10 +288,10 @@ void WESetWallpaperByOptions() {
         usleep((int)(opts.dt * 1000000));
     }
 
-    while (iter != head) {
+    do {
         if (iter != org) XFreePixmap(disp, iter);
         iter = WEGetNextPixmap(origin);
-    }
+    } while (iter != head);
     XFreePixmap(disp, origin);
 }
 
