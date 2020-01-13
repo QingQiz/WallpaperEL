@@ -2,7 +2,9 @@
 #define _WALLPAPER_H
 #include <Imlib2.h>
 #include <X11/Xlib.h>
+
 #define FIFO_SETP 12
+#define MIN_FIFO_ENABLE_TIME 1.5
 
 
 typedef struct image_list_s {

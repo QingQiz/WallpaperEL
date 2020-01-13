@@ -110,7 +110,7 @@ void WEGetNextImageList() {
             im_m[i]->next = NULL;
         }
 
-        // load all if dt < 1.5 else load when necessary
+        // load all if dt < MIN_FIFO_ENABLE_TIME else load when necessary
         if (!im_loaded) {
             file_list *fhead = opts.monitor[i];
             file_list *fiter = fhead;
@@ -118,7 +118,7 @@ void WEGetNextImageList() {
             image_list *phead = im_m[i];
             image_list *piter = phead;
 
-            if (opts.dt < 1.5) {
+            if (opts.dt < MIN_FIFO_ENABLE_TIME) {
                 D("loading %s", fiter->file_name);
                 piter->im = imlib_load_image(fiter->file_name);
                 assert(piter->im, "Can not load %s", opts.monitor[i]->file_name);
@@ -130,7 +130,7 @@ void WEGetNextImageList() {
             while (fiter != fhead) {
                 piter->next = (image_list*)malloc(sizeof(image_list));
                 piter = piter->next;
-                if (opts.dt < 1.5) {
+                if (opts.dt < MIN_FIFO_ENABLE_TIME) {
                     D("loading %s", fiter->file_name);
                     piter->im = imlib_load_image(fiter->file_name);
                     assert(piter->im, "Can not load %s", opts.monitor[i]->file_name);
@@ -192,6 +192,13 @@ Pixmap WEGetNextPixmap(Pixmap origin) {
         pmap_l->pmap = 0;
         pixmap_list *iter= pmap_l;
 
+        int cnt = (opts.fifo && opts.dt >= MIN_FIFO_ENABLE_TIME) ? FIFO_SETP - 1 : 0;
+        while (cnt--) {
+            iter->next = (pixmap_list*)malloc(sizeof(pixmap_list));
+            iter = iter->next;
+            iter->pmap = 0;
+        }
+
         while (1) {
             for (int i = 0; i < MAX_MONITOR_N + 1; ++i) {
                 if (fiter[i]) fiter[i] = fiter[i]->next;
@@ -206,7 +213,7 @@ Pixmap WEGetNextPixmap(Pixmap origin) {
             }
             if (is_end) break;
 
-            int cnt = (opts.fifo && opts.dt >= 1.5) ? FIFO_SETP : 1;
+            int cnt = (opts.fifo && opts.dt >= MIN_FIFO_ENABLE_TIME) ? FIFO_SETP : 1;
             while (cnt--) {
                 iter->next = (pixmap_list*)malloc(sizeof(pixmap_list));
                 iter = iter->next;
@@ -223,7 +230,7 @@ Pixmap WEGetNextPixmap(Pixmap origin) {
     }
 
     pixmap_list *head = pmap_l;
-    if (opts.dt < 1.5) {
+    if (opts.dt < MIN_FIFO_ENABLE_TIME) {
         pmap_l->pmap = XCreatePixmap(disp, root, scr->width, scr->width, depth);
         WEGetNextImageList();
         copy_pixmap(pmap_l->pmap, origin);
@@ -256,6 +263,7 @@ Pixmap WEGetNextPixmap(Pixmap origin) {
             copy_pixmap(pmap_l->pmap, origin);
             pmap_l = pmap_l->next;
         }
+        pmap_l = head->next;
         return head->pmap;
     }
 }
@@ -267,15 +275,14 @@ void WESetWallpaperByOptions() {
     Pixmap iter = head, org = origin;
 
     while (1) {
-        int cnt = (opts.fifo && opts.fifo >= 1.5) ? FIFO_SETP : 1;
+        int cnt = (opts.fifo && opts.dt >= MIN_FIFO_ENABLE_TIME) ? FIFO_SETP : 1;
 
         while (cnt--) {
             WESetWallpaper(iter);
+            org = iter;
+            iter = WEGetNextPixmap(org);
             usleep((int)(0.05f * 1000000));
         }
-
-        org = iter;
-        iter = WEGetNextPixmap(org);
 
         if (iter == head) break;
         usleep((int)(opts.dt * 1000000));
