@@ -103,6 +103,7 @@ void copy_pixmap(Pixmap pm_d, Pixmap pm_s) {
     static XGCValues gcvalues;
     static GC gc;
 
+    D("copy pixmap %lu to %lu", pm_s, pm_d);
     gcvalues.fill_style = FillTiled;
     gcvalues.tile = pm_s;
     gc = XCreateGC(disp, pm_d, GCFillStyle | GCTile, &gcvalues);

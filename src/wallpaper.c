@@ -44,6 +44,7 @@ void WESetWallpaper(Pixmap pmap) {
     // clear old wallpaper
     XClearWindow(disp, root);
     // draw new wallpaper
+    D("Draw %lu", pmap);
     XFlush(disp);
 }
 
@@ -81,6 +82,7 @@ Pixmap WEGetCurrentPixmapOrCreate() {
             }
 
             Pixmap pmap = *(Pixmap*)data_root;
+            oldclient = pmap;
 
             if (data_root) XFree(data_root);
             if (data_esetroot) XFree(data_esetroot);
@@ -94,7 +96,7 @@ _killed:
     return XCreatePixmap(disp, root, scr->width, scr->height, depth);
 }
 
-void WELoadImageByStep() {
+void WEGetNextImageList() {
     static image_list *im_m[MAX_MONITOR_N + 1] = {(image_list*)NULL};
     static char im_loaded = 0;
 
@@ -117,11 +119,10 @@ void WELoadImageByStep() {
             image_list *piter = phead;
 
             if (opts.dt < 1.5) {
-                D("load all image");
+                D("loading %s", fiter->file_name);
                 piter->im = imlib_load_image(fiter->file_name);
                 assert(piter->im, "Can not load %s", opts.monitor[i]->file_name);
             } else {
-                D("lazy load");
                 piter->im = NULL;
             }
             fiter = fiter->next;
@@ -130,6 +131,7 @@ void WELoadImageByStep() {
                 piter->next = (image_list*)malloc(sizeof(image_list));
                 piter = piter->next;
                 if (opts.dt < 1.5) {
+                    D("loading %s", fiter->file_name);
                     piter->im = imlib_load_image(fiter->file_name);
                     assert(piter->im, "Can not load %s", opts.monitor[i]->file_name);
                 } else {
@@ -144,6 +146,7 @@ void WELoadImageByStep() {
         }
 
         if (im_m[i]->im == NULL) {
+            D("loading %s", opts.monitor[i]->file_name);
             im_m[i]->im = imlib_load_image(opts.monitor[i]->file_name);
             assert(im_m[i]->im, "Can not load %s", opts.monitor[i]->file_name);
         }
@@ -154,7 +157,7 @@ void WELoadImageByStep() {
     }
 }
 
-void WERenderASetp(Pixmap pmap, int alpha) {
+void WERenderImageListToPixmap(Pixmap pmap, int alpha) {
     Imlib_Image im;
     for (int i = 0; i < monitor_n; ++i) {
         if (opts.monitor[i] == NULL) {
@@ -169,11 +172,12 @@ void WERenderASetp(Pixmap pmap, int alpha) {
 
         if (alpha != 255) image_set_alpha(im, alpha);
 
+        D("Rendering pixmap %lu with alpha %d", pmap, alpha);
         bg_filled(pmap, im, monitor_l[i].x, monitor_l[i].y, monitor_l[i].width, monitor_l[i].height);
     }
 }
 
-Pixmap WERenderImageToPixmap(Pixmap origin) {
+Pixmap WEGetNextPixmap(Pixmap origin) {
     static pixmap_list *pmap_l = NULL;
     static char is_list_build = 0;
 
@@ -220,36 +224,34 @@ Pixmap WERenderImageToPixmap(Pixmap origin) {
 
     pixmap_list *head = pmap_l;
     if (opts.dt < 1.5) {
-        D("render all");
         pmap_l->pmap = XCreatePixmap(disp, root, scr->width, scr->width, depth);
-        WELoadImageByStep();
+        WEGetNextImageList();
         copy_pixmap(pmap_l->pmap, origin);
-        WERenderASetp(pmap_l->pmap, 255);
+        WERenderImageListToPixmap(pmap_l->pmap, 255);
 
         pmap_l = pmap_l->next;
 
         while (pmap_l != head) {
             pmap_l->pmap = XCreatePixmap(disp, root, scr->width, scr->width, depth);
-            WELoadImageByStep();
+            WEGetNextImageList();
 
             copy_pixmap(pmap_l->pmap, origin);
-            WERenderASetp(pmap_l->pmap, 255);
+            WERenderImageListToPixmap(pmap_l->pmap, 255);
 
             pmap_l = pmap_l->next;
         }
         pmap_l = pmap_l->next;
         return head->pmap;
     } else {
-        D("lazy render");
         int cnt = opts.fifo ? FIFO_SETP : 1;
-        WELoadImageByStep();
+        WEGetNextImageList();
 
         while (cnt--) {
             pmap_l->pmap = XCreatePixmap(disp, root, scr->width, scr->width, depth);
             if (cnt == 0) {
-                WERenderASetp(origin, 255);
+                WERenderImageListToPixmap(origin, 255);
             } else {
-                WERenderASetp(origin, 32);
+                WERenderImageListToPixmap(origin, 32);
             }
             copy_pixmap(pmap_l->pmap, origin);
             pmap_l = pmap_l->next;
@@ -261,7 +263,7 @@ Pixmap WERenderImageToPixmap(Pixmap origin) {
 
 void WESetWallpaperByOptions() {
     Pixmap origin = WEGetCurrentPixmapOrCreate();
-    Pixmap head = WERenderImageToPixmap(origin);
+    Pixmap head = WEGetNextPixmap(origin);
     Pixmap iter = head, org = origin;
 
     while (1) {
@@ -273,7 +275,7 @@ void WESetWallpaperByOptions() {
         }
 
         org = iter;
-        iter = WERenderImageToPixmap(org);
+        iter = WEGetNextPixmap(org);
 
         if (iter == head) break;
         usleep((int)(opts.dt * 1000000));
@@ -281,7 +283,7 @@ void WESetWallpaperByOptions() {
 
     while (iter != head) {
         if (iter != org) XFreePixmap(disp, iter);
-        iter = WERenderImageToPixmap(origin);
+        iter = WEGetNextPixmap(origin);
     }
     XFreePixmap(disp, origin);
 }
