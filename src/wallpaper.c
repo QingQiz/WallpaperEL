@@ -52,6 +52,7 @@ Pixmap WEGetCurrentPixmapOrCreate() {
     // get property if has, or return None
     Atom prop_root = XInternAtom(disp, "_XROOTPMAP_ID", True);
     Atom prop_esetroot = XInternAtom(disp, "ESETROOT_PMAP_ID", True);
+    Pixmap pmap = 0;
 
     // has property ?
     if (prop_root != None && prop_esetroot != None) {
@@ -67,31 +68,25 @@ Pixmap WEGetCurrentPixmapOrCreate() {
 
         // same pixmap ?
         if (data_root && *(Pixmap*)data_root == *(Pixmap*)data_esetroot) {
-            // useless pixmap
-            int cnt = 0;
-            if (opts.monitor[MAX_MONITOR_N] != NULL) {
-                oldclient = *(Pixmap*)data_root;
-                goto _killed;
-            }
-            for (int i = 0; i < monitor_n; ++i) {
-                if (opts.monitor[i]) cnt++;
-            }
-            if (cnt == monitor_n) {
-                oldclient = *(Pixmap*)data_root;
-                goto _killed;
-            }
-
-            Pixmap pmap = *(Pixmap*)data_root;
+            pmap = *(Pixmap*)data_root;
             oldclient = pmap;
-
-            if (data_root) XFree(data_root);
-            if (data_esetroot) XFree(data_esetroot);
-
-            return pmap;
         }
-_killed:
         if (data_root) XFree(data_root);
         if (data_esetroot) XFree(data_esetroot);
+    }
+    if (!pmap) {
+        return XCreatePixmap(disp, root, scr->width, scr->height, depth);
+    }
+
+    int cnt = 0, flg = 1;
+    if (opts.monitor[MAX_MONITOR_N] != NULL) flg = 0;
+    for (int i = 0; i < MAX_MONITOR_N; ++i) if (opts.monitor[i] != NULL) cnt++;
+    if (cnt == monitor_n) flg = 0;
+
+    // fifo or not set all monitor, use old pixmap
+    if (flg || opts.fifo) {
+        oldclient = 0;
+        return pmap;
     }
     return XCreatePixmap(disp, root, scr->width, scr->height, depth);
 }
@@ -170,10 +165,14 @@ void WERenderImageListToPixmap(Pixmap pmap, int alpha) {
             im = im_m_now[i]->im;
         }
 
-        if (alpha != 255) image_set_alpha(im, alpha);
-
         D("Rendering pixmap %lu with alpha %d", pmap, alpha);
-        bg_filled(pmap, im, monitor_l[i].x, monitor_l[i].y, monitor_l[i].width, monitor_l[i].height);
+        if (alpha != 255) {
+            im = image_set_alpha(im, alpha);
+
+            bg_filled(pmap, im, monitor_l[i].x, monitor_l[i].y, monitor_l[i].width, monitor_l[i].height);
+        } else {
+            bg_filled(pmap, im, monitor_l[i].x, monitor_l[i].y, monitor_l[i].width, monitor_l[i].height);
+        }
     }
 }
 
@@ -255,12 +254,12 @@ Pixmap WEGetNextPixmap(Pixmap origin) {
 
         while (cnt--) {
             pmap_l->pmap = XCreatePixmap(disp, root, scr->width, scr->width, depth);
-            if (cnt == 0) {
-                WERenderImageListToPixmap(origin, 255);
-            } else {
-                WERenderImageListToPixmap(origin, 32);
-            }
             copy_pixmap(pmap_l->pmap, origin);
+            if (cnt == 0) {
+                WERenderImageListToPixmap(pmap_l->pmap, 255);
+            } else {
+                WERenderImageListToPixmap(pmap_l->pmap, (255 - 255 / FIFO_SETP * cnt));
+            }
             pmap_l = pmap_l->next;
         }
         pmap_l = head->next;
@@ -281,18 +280,18 @@ void WESetWallpaperByOptions() {
             WESetWallpaper(iter);
             org = iter;
             iter = WEGetNextPixmap(org);
-            usleep((int)(0.05f * 1000000));
+            if (cnt) usleep((int)(0.61f / FIFO_SETP * 1000000));
+            // usleep((int)(1 * 1000000));
         }
 
         if (iter == head) break;
         usleep((int)(opts.dt * 1000000));
     }
 
-    while (iter != head) {
+    do {
         if (iter != org) XFreePixmap(disp, iter);
         iter = WEGetNextPixmap(origin);
-    }
+    } while (iter != head);
     XFreePixmap(disp, origin);
 }
-
 

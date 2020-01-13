@@ -13,7 +13,9 @@ int image_get_width(Imlib_Image im);
 
 int image_get_height(Imlib_Image im);
 
-void image_set_alpha(Imlib_Image im, int alpha);
+Imlib_Image image_set_alpha(Imlib_Image im, int alpha);
+
+void image_free(Imlib_Image im);
 
 void render_image_part_on_drawable_at_size(
     Drawable d,
