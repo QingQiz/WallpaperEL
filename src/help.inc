@@ -9,11 +9,12 @@
 " -mX FILE                       Specify FILE(or file list) as the wallpaper for monitor X\n"
 "              --else FILE       If this option is set, all monitors\n"
 "                                not specified by -mX will use FILE(or file list)\n"
-"              --fifo            Set the transition effect of the RGBA picture to fade in\n"
+"              --fifo            Set the transition effect of the wallpaper to fade in and fade out\n"
 " -t dt                          Interval when using picture list When this value is\n"
 "                                less than 1.5, --fifo will be ignored, default 60\n"
 "\n"
 "EXAMPLE\n"
 " " PACKAGE " -m0 a.jpg -m2 b.jpg --else c.png d.png e.png -t 20 --fifo\n"
+" " PACKAGE " --else video_frames* -t 0.01\n"
 "\n"
 

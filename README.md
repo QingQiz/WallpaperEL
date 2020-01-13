@@ -30,6 +30,5 @@ we --help
 ## TODO
 
 - more filling method
-- convert RGB image to RGBA image to support fifo
 - set a video file as wallpaper
 
