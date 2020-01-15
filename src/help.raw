@@ -1,0 +1,20 @@
+" PACKAGE " version " VERSION "
+
+Usage :
+ " PACKAGE " [options]
+
+OPTIONS
+ -h,          --help            Show help and exit
+ -ml,         --list-monitors   List monitors and exit
+ -mX FILE                       Specify FILE(or file list) as the wallpaper for monitor X
+              --else FILE       If this option is set, all monitors
+                                not specified by -mX will use FILE(or file list)
+              --fifo            Set the transition effect of the wallpaper to fade in and fade out
+ -t dt                          Interval when using picture list When this value is
+                                less than 1.5, --fifo will be ignored, default 60
+              --loop            slideshow wallpaper loop
+
+EXAMPLE
+ " PACKAGE " -m0 a.jpg -m2 b.jpg --else c.png d.png e.png -t 20 --fifo
+ " PACKAGE " --else video_frames* -t 0.03 --loop
+

@@ -27,8 +27,11 @@ options.o : options.c options.h debug.h help.inc
 %.o : %.c %.h debug.h
 	$(CC) $(CFLAGS) $< -o $@ $(DEBUG_FLAG)
 
+%.inc : %.raw
+	sed 's/^\(.*\)$$/"\1\\n"/' < $< > $@
+
 clean:
-	@rm -f *.o $(EXEC_NAME)
+	@rm -f *.o $(EXEC_NAME) *.inc
 
 
 .PHONY : clean default debug release
