@@ -10,6 +10,7 @@ static struct option long_options[] = {
     {"list-monitors", no_argument,       0, WE_LIST_MONITORS},
     {"else",          no_argument,       0, WE_ELSE},
     {"fifo",          no_argument,       0, WE_FADE_IN_FADE_OUT},
+    {"loop",          no_argument,       0, WE_LOOP},
     {"help",          no_argument,       0, 'h'},
     {0,               0,                 0, 0},
 };
@@ -20,6 +21,7 @@ static void init_opts() {
     opts.list_monitors = 0;
     opts.fifo = 0;
     opts.dt = 60;
+    opts.loop = 0;
 
     memset(opts.monitor, 0, sizeof(opts.monitor));
 }
@@ -68,6 +70,9 @@ void parse_opts(int argc, char**argv) {
                 break;
             case WE_FADE_IN_FADE_OUT:
                 opts.fifo = 1;
+                break;
+            case WE_LOOP:
+                opts.loop = 1;
                 break;
             case 'm':
                 if (*optarg == 'l') {

@@ -323,7 +323,7 @@ void WESetWallpaperByOptions() {
             // usleep((int)(1 * 1000000));
         }
 
-        if (iter == head) break;
+        if (iter == head && !opts.loop) break;
         usleep((int)(opts.dt * 1000000));
     }
 

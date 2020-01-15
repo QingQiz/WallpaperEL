@@ -17,12 +17,15 @@ typedef struct {
     char fifo;
 
     float dt;
+
+    char loop;
 } we_option;
 
 enum we_long_opt {
     WE_LIST_MONITORS = 1,
     WE_ELSE,
     WE_FADE_IN_FADE_OUT,
+    WE_LOOP,
 };
 
 extern we_option opts;
