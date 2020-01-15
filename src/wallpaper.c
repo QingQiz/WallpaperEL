@@ -1,5 +1,6 @@
 #include <X11/Xatom.h>
 #include <unistd.h>
+#include <signal.h>
 
 #include "wallpaper.h"
 #include "mmonitor.h"
@@ -8,6 +9,7 @@
 #include "options.h"
 
 static image_list *im_m_now[MAX_MONITOR_N + 1] = {(image_list*)NULL};
+static Pixmap current_pixmap = 0;
 
 static void bg_filled(Pixmap pmap, Imlib_Image im, int x, int y, int w, int h) {
     int img_w = image_get_width(im);
@@ -28,24 +30,25 @@ static void bg_filled(Pixmap pmap, Imlib_Image im, int x, int y, int w, int h) {
         1, 1, 1);
 }
 
-void WESetWallpaper(Pixmap pmap) {
-    Atom prop_root = XInternAtom(disp, "_XROOTPMAP_ID", False);
-    Atom prop_esetroot = XInternAtom(disp, "ESETROOT_PMAP_ID", False);
+void WESetWallpaper(Display *display, Pixmap pmap) {
+    Atom prop_root = XInternAtom(display, "_XROOTPMAP_ID", False);
+    Atom prop_esetroot = XInternAtom(display, "ESETROOT_PMAP_ID", False);
 
     assert(prop_root != None && prop_esetroot != None, "creation of pixmap property failed.");
 
     // replace pixmap to pmap
-    XChangeProperty(disp, root, prop_root, XA_PIXMAP, 32,
+    XChangeProperty(display, root, prop_root, XA_PIXMAP, 32,
                     PropModeReplace, (unsigned char *) &pmap, 1);
-    XChangeProperty(disp, root, prop_esetroot, XA_PIXMAP, 32,
+    XChangeProperty(display, root, prop_esetroot, XA_PIXMAP, 32,
                     PropModeReplace, (unsigned char *) &pmap, 1);
-    XSetWindowBackgroundPixmap(disp, root, pmap);
+    XSetWindowBackgroundPixmap(display, root, pmap);
 
     // clear old wallpaper
-    XClearWindow(disp, root);
+    XClearWindow(display, root);
     // draw new wallpaper
     D("Draw %lu", pmap);
-    XFlush(disp);
+    XFlush(display);
+    current_pixmap = pmap;
 }
 
 Pixmap WEGetCurrentPixmapOrCreate() {
@@ -232,7 +235,7 @@ Pixmap WEGetNextPixmap(Pixmap origin) {
     if (opts.dt < MIN_FIFO_ENABLE_TIME) {
         pmap_l->pmap = XCreatePixmap(disp, root, scr->width, scr->width, depth);
         WEGetNextImageList();
-        copy_pixmap(pmap_l->pmap, origin);
+        copy_pixmap(disp, pmap_l->pmap, origin);
         WERenderImageListToPixmap(pmap_l->pmap, 255);
 
         pmap_l = pmap_l->next;
@@ -241,7 +244,7 @@ Pixmap WEGetNextPixmap(Pixmap origin) {
             pmap_l->pmap = XCreatePixmap(disp, root, scr->width, scr->width, depth);
             WEGetNextImageList();
 
-            copy_pixmap(pmap_l->pmap, origin);
+            copy_pixmap(disp, pmap_l->pmap, origin);
             WERenderImageListToPixmap(pmap_l->pmap, 255);
 
             pmap_l = pmap_l->next;
@@ -254,7 +257,7 @@ Pixmap WEGetNextPixmap(Pixmap origin) {
 
         while (cnt--) {
             pmap_l->pmap = XCreatePixmap(disp, root, scr->width, scr->width, depth);
-            copy_pixmap(pmap_l->pmap, origin);
+            copy_pixmap(disp, pmap_l->pmap, origin);
             if (cnt == 0) {
                 WERenderImageListToPixmap(pmap_l->pmap, 255);
             } else {
@@ -267,8 +270,44 @@ Pixmap WEGetNextPixmap(Pixmap origin) {
     }
 }
 
+void WEExit() {
+    if (current_pixmap == 0) return;
+
+    // open new display
+    Display *disp2 = XOpenDisplay(NULL);
+    assert(disp2, "Can not reopen display");
+    Window root2 = RootWindow(disp2, DefaultScreen(disp2));
+
+    // copy current pixmap to new display
+    Pixmap pmap_final = XCreatePixmap(disp2, root2, scr->width, scr->height, depth);
+
+    copy_pixmap(disp2, pmap_final, current_pixmap);
+
+    XSync(disp, False);
+    XSync(disp2, False);
+    XFreePixmap(disp, current_pixmap);
+
+    // set new pixmap as wallpaper
+    WESetWallpaper(disp2, pmap_final);
+    XSetCloseDownMode(disp2, RetainPermanent);
+
+    XCloseDisplay(disp2);
+}
+
+void WESigintHandler(int signo) {
+    if (signo == SIGINT) {
+        DW("SIGINT recived, exit.");
+        WEExit();
+        destruct_imtools();
+        exit(-1);
+    }
+}
+
 
 void WESetWallpaperByOptions() {
+    if (signal(SIGINT, WESigintHandler) == SIG_ERR) {
+        DW("Can not catch SIGINT");
+    }
     Pixmap origin = WEGetCurrentPixmapOrCreate();
     Pixmap head = WEGetNextPixmap(origin);
     Pixmap iter = head, org = origin;
@@ -277,7 +316,7 @@ void WESetWallpaperByOptions() {
         int cnt = (opts.fifo && opts.dt >= MIN_FIFO_ENABLE_TIME) ? FIFO_SETP : 1;
 
         while (cnt--) {
-            WESetWallpaper(iter);
+            WESetWallpaper(disp, iter);
             org = iter;
             iter = WEGetNextPixmap(org);
             if (cnt) usleep((int)(0.61f / FIFO_SETP * 1000000));
@@ -293,5 +332,7 @@ void WESetWallpaperByOptions() {
         iter = WEGetNextPixmap(origin);
     } while (iter != head);
     XFreePixmap(disp, origin);
+
+    WEExit();
 }
 

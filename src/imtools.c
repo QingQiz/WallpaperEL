@@ -50,8 +50,6 @@ void init_x_and_imtools() {
 }
 
 void destruct_imtools() {
-    // do not free pixmap after exit
-    XSetCloseDownMode(disp, RetainPermanent);
     if (oldclient) XKillClient(disp, oldclient);
     XCloseDisplay(disp);
 
@@ -122,7 +120,7 @@ void render_image_part_on_drawable_at_size(
     imlib_render_image_part_on_drawable_at_size(sx, sy, sw, sh, dx, dy, dw, dh);
 }
 
-void copy_pixmap(Pixmap pm_d, Pixmap pm_s) {
+void copy_pixmap(Display* disp, Pixmap pm_d, Pixmap pm_s) {
     static XGCValues gcvalues;
     static GC gc;
 
