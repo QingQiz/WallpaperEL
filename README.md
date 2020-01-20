@@ -12,7 +12,7 @@
 ## Install
 
 ```shell
-make release
+make
 sudo make install
 ```
 
@@ -22,14 +22,17 @@ sudo make install
 we --help
 ```
 
-## Features
-
-- Set wallpaper
-- wallpaper slideshow
-- fade in and fade out when set wallpaper
-
 ## TODO
 
-- more filling method
-- set a video file as wallpaper
+- Features
+
+    - more filling method
+    - video wallpaper
+    - wallpaper with sound
+    
+
+- FIXME
+
+    - `wallpaper.c` needs refactoring
+    - can not show help message without X
 
