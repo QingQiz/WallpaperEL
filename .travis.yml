@@ -4,6 +4,7 @@ addons:
     packages:
       - libx11-dev
       - libimlib2-dev
+      - xorg-dev
 script:
   - make
 compiler:
