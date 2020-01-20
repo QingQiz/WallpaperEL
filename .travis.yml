@@ -9,4 +9,6 @@ script:
   - make
 compiler:
   - gcc
+  - cc
+  - clang
 

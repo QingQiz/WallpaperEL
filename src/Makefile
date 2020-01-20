@@ -1,9 +1,5 @@
 include ../config.mk
 
-CC = gcc
-CFLAGS = -Wall -Wextra -c -DPACKAGE=\"$(EXEC_NAME)\" -DVERSION=\"$(VERSION)\"
-LDLIBS = -lX11 -lXrandr -lImlib2
-
 SRC = $(shell echo *.c)
 INC = $(shell echo *.h)
 
