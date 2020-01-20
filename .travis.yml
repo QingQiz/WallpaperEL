@@ -1,0 +1,11 @@
+language: c
+addons:
+  apt:
+    packages:
+      - libx11-dev
+      - libimlib2-dev
+script:
+  - make
+compiler:
+  - gcc
+
