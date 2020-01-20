@@ -1,3 +1,4 @@
+[![Build Status](https://travis-ci.org/QingQiz/WallpaperEL.svg?branch=master)](https://travis-ci.org/QingQiz/WallpaperEL)
 # WallpaperEL
 
 > *Wallpaper Engine for Linux (Undone)*
