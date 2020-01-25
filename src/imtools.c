@@ -14,15 +14,17 @@ Window root = 0;
 WEMonitor *monitor_l;
 int monitor_n;
 
-static int X_error_handler(Display *d, XErrorEvent *e) {
+static image_list *im_m_now[MAX_MONITOR_N + 1] = {(image_list*)NULL};
+
+static int WEXErrorHandler(Display *d, XErrorEvent *e) {
     if (e->error_code == BadPixmap) {
         assert(!opts.fifo, "Bad Pixmap, try running without --fifo");
     }
     return 0;
 }
 
-void init_x_and_imtools() {
-    XSetErrorHandler(X_error_handler);
+void WEImtoolsInit() {
+    XSetErrorHandler(WEXErrorHandler);
 
     disp = XOpenDisplay(NULL);
     assert(disp, "Can't open X display");
@@ -49,7 +51,7 @@ void init_x_and_imtools() {
     XSetCloseDownMode(disp, DestroyAll);
 }
 
-void destruct_imtools() {
+void WEImtoolsDestruct() {
     if (oldclient) XKillClient(disp, oldclient);
     XCloseDisplay(disp);
 
@@ -57,20 +59,20 @@ void destruct_imtools() {
     disp = NULL, vis = NULL, scr = NULL, root = 0;
 }
 
-int image_get_width(Imlib_Image im) {
+int WEGetImageWidth(Imlib_Image im) {
    imlib_context_set_image(im);
    return imlib_image_get_width();
 }
 
-int image_get_height(Imlib_Image im) {
+int WEGetImageHeight(Imlib_Image im) {
    imlib_context_set_image(im);
    return imlib_image_get_height();
 }
 
-Imlib_Image image_set_alpha(Imlib_Image im, int alpha) {
+Imlib_Image WESetImageAlpha(Imlib_Image im, int alpha) {
     static Imlib_Image im_aph = 0, im_cpy = 0;
-    if (im_aph) image_free(im_aph);
-    if (im_cpy) image_free(im_cpy);
+    if (im_aph) WEFreeImage(im_aph);
+    if (im_cpy) WEFreeImage(im_cpy);
 
     imlib_context_set_image(im);
     int h = imlib_image_get_height();
@@ -88,28 +90,19 @@ Imlib_Image image_set_alpha(Imlib_Image im, int alpha) {
     imlib_blend_image_onto_image(im, 1, 0, 0, w, h, 0, 0, w, h);
     imlib_image_copy_alpha_to_image(im_aph, 0, 0);
 
-    // static int cnt = 0;
-    // char s[100];
-    // sprintf(s, "frame_%02d.png", cnt++);
-    // imlib_save_image(s);
     return im_cpy;
 }
 
-void image_free(Imlib_Image im) {
+void WEFreeImage(Imlib_Image im) {
     imlib_context_set_image(im);
     imlib_free_image();
 }
 
-void render_image_part_on_drawable_at_size(
-        Drawable d,
-        Imlib_Image im,
-        int sx, int sy,
-        int sw, int sh,
-        int dx, int dy,
-        int dw, int dh,
-        char dither,
-        char blend,
-        char alias)
+void WERenderImagePartOnDrawableAtSize(
+        Drawable d, Imlib_Image im,
+        int sx, int sy, int sw, int sh,
+        int dx, int dy, int dw, int dh,
+        char dither, char blend, char alias)
 {
     imlib_context_set_image(im);
     imlib_context_set_drawable(d);
@@ -120,7 +113,7 @@ void render_image_part_on_drawable_at_size(
     imlib_render_image_part_on_drawable_at_size(sx, sy, sw, sh, dx, dy, dw, dh);
 }
 
-void copy_pixmap(Display* disp, Pixmap pm_d, Pixmap pm_s) {
+void WECopyPixmap(Display* disp, Pixmap pm_d, Pixmap pm_s) {
     static XGCValues gcvalues;
     static GC gc;
 
@@ -130,4 +123,108 @@ void copy_pixmap(Display* disp, Pixmap pm_d, Pixmap pm_s) {
     gc = XCreateGC(disp, pm_d, GCFillStyle | GCTile, &gcvalues);
     XFillRectangle(disp, pm_d, gc, 0, 0, scr->width, scr->height);
     XFreeGC(disp, gc);
+}
+
+void WEBgFilled(Pixmap pmap, Imlib_Image im, int x, int y, int w, int h) {
+    int img_w = WEGetImageWidth(im);
+    int img_h = WEGetImageHeight(im);
+
+    int cut_x = (((img_w * h) > (img_h * w)) ? 1 : 0);
+
+    int render_w = (  cut_x ? ((img_h * w) / h) : img_w);
+    int render_h = ( !cut_x ? ((img_w * h) / w) : img_h);
+
+    int render_x = (  cut_x ? ((img_w - render_w) >> 1) : 0);
+    int render_y = ( !cut_x ? ((img_h - render_h) >> 1) : 0);
+
+    WERenderImagePartOnDrawableAtSize(pmap, im,
+        render_x, render_y,
+        render_w, render_h,
+        x, y, w, h,
+        1, 1, 1);
+}
+
+void WELoadNextImage() {
+    static image_list *im_m[MAX_MONITOR_N + 1] = {(image_list*)NULL};
+    static char im_loaded = 0;
+
+    // load images
+    for (int i = 0; i < MAX_MONITOR_N + 1; ++i) {
+        if (opts.monitor[i] == NULL) continue;
+
+        if (im_m[i] == NULL) {
+            im_m[i] = (image_list*)malloc(sizeof(image_list));
+            im_m[i]->im = 0;
+            im_m[i]->next = NULL;
+        }
+
+        // load all if dt < MIN_FIFO_ENABLE_TIME else load when necessary
+        if (!im_loaded) {
+            file_list *fhead = opts.monitor[i];
+            file_list *fiter = fhead;
+
+            image_list *phead = im_m[i];
+            image_list *piter = phead;
+
+            if (opts.dt < MIN_FIFO_ENABLE_TIME) {
+                D("loading %s", fiter->file_name);
+                piter->im = imlib_load_image(fiter->file_name);
+                assert(piter->im, "Can not load %s", opts.monitor[i]->file_name);
+            } else {
+                piter->im = NULL;
+            }
+            fiter = fiter->next;
+
+            while (fiter != fhead) {
+                piter->next = (image_list*)malloc(sizeof(image_list));
+                piter = piter->next;
+                if (opts.dt < MIN_FIFO_ENABLE_TIME) {
+                    D("loading %s", fiter->file_name);
+                    piter->im = imlib_load_image(fiter->file_name);
+                    assert(piter->im, "Can not load %s", opts.monitor[i]->file_name);
+                } else {
+                    piter->im = NULL;
+                }
+                fiter = fiter->next;
+            }
+            piter->next = phead;
+            im_m[i] = phead;
+
+            im_loaded = 1;
+        }
+
+        if (im_m[i]->im == NULL) {
+            D("loading %s", opts.monitor[i]->file_name);
+            im_m[i]->im = imlib_load_image(opts.monitor[i]->file_name);
+            assert(im_m[i]->im, "Can not load %s", opts.monitor[i]->file_name);
+        }
+
+        im_m_now[i] = im_m[i];
+        im_m[i] = im_m[i]->next;
+        opts.monitor[i] = opts.monitor[i]->next;
+    }
+}
+
+void WERenderCurrentImageToPixmap(Pixmap pmap, int alpha) {
+    static Imlib_Image im;
+    for (int i = 0; i < monitor_n; ++i) {
+        if (opts.monitor[i] == NULL) {
+            if (opts.monitor[MAX_MONITOR_N] == NULL) {
+                continue;
+            } else {
+                im = im_m_now[MAX_MONITOR_N]->im;
+            }
+        } else {
+            im = im_m_now[i]->im;
+        }
+
+        D("Rendering pixmap %lu with alpha %d", pmap, alpha);
+        if (alpha != 255) {
+            im = WESetImageAlpha(im, alpha);
+
+            WEBgFilled(pmap, im, monitor_l[i].x, monitor_l[i].y, monitor_l[i].width, monitor_l[i].height);
+        } else {
+            WEBgFilled(pmap, im, monitor_l[i].x, monitor_l[i].y, monitor_l[i].width, monitor_l[i].height);
+        }
+    }
 }

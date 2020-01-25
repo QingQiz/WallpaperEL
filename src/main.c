@@ -7,9 +7,9 @@
 
 
 int main(int argc, char** argv) {
-    init_x_and_imtools();
+    WEImtoolsInit();
 
-    parse_opts(argc, argv);
+    WEParseOpts(argc, argv);
     if (opts.list_monitors) {
         printf("Monitor List:\n");
         for (int i = 0; i < monitor_n; ++i) {
@@ -20,7 +20,7 @@ int main(int argc, char** argv) {
     }
     WESetWallpaperByOptions();
 
-    destruct_imtools();
+    WEImtoolsDestruct();
     return 0;
 }
 

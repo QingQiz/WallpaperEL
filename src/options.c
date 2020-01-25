@@ -47,7 +47,7 @@ static file_list* create_file_list_by_options(int argc, char **argv) {
     return head;
 }
 
-void parse_opts(int argc, char**argv) {
+void WEParseOpts(int argc, char**argv) {
     char is_opt_set = 0;
 
     init_opts();

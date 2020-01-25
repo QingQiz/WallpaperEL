@@ -3,6 +3,8 @@
 #include <getopt.h>
 
 #define MAX_MONITOR_N 10
+#define FIFO_SETP 12
+#define MIN_FIFO_ENABLE_TIME 1.5
 
 typedef struct file_list_s {
     char *file_name;

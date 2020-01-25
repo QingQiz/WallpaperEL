@@ -4,34 +4,39 @@
 #include <Imlib2.h>
 #include "mmonitor.h"
 
+typedef struct image_list_s {
+    Imlib_Image im;
+    struct image_list_s *next;
+} image_list;
 
-void init_x_and_imtools();
 
-void destruct_imtools();
+// init & deinit
+void WEImtoolsInit();
+void WEImtoolsDestruct();
 
-int image_get_width(Imlib_Image im);
+// image information
+int WEGetImageWidth(Imlib_Image im);
+int WEGetImageHeight(Imlib_Image im);
 
-int image_get_height(Imlib_Image im);
+// operations on image
+Imlib_Image WESetImageAlpha(Imlib_Image im, int alpha);
+void WEFreeImage(Imlib_Image im);
+void WECopyPixmap(Display* disp, Pixmap pm_d, Pixmap pm_s);
+void WELoadNextImage();
 
-Imlib_Image image_set_alpha(Imlib_Image im, int alpha);
-
-void image_free(Imlib_Image im);
-
-void render_image_part_on_drawable_at_size(
-    Drawable d,
-    Imlib_Image im,
-    int sx, int sy,
-    int sw, int sh,
-    int dx, int dy,
-    int dw, int dh,
-    char dither,
-    char blend,
-    char alias
+// rendering
+void WERenderImagePartOnDrawableAtSize(
+        Drawable d, Imlib_Image im,
+        int sx, int sy, int sw, int sh,
+        int dx, int dy, int dw, int dh,
+        char dither, char blend, char alias
 );
+void WERenderCurrentImageToPixmap(Pixmap pmap, int alpha);
 
-void copy_pixmap(Display *disp, Pixmap pm_d, Pixmap pm_s);
+// filling method
+void WEBgFilled(Pixmap pmap, Imlib_Image im, int x, int y, int w, int h);
 
-
+// extern variables
 extern Display *disp;
 extern Visual *vis;
 extern Screen *scr;
