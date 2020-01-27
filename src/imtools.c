@@ -22,24 +22,9 @@ static int WEXErrorHandler(Display *d, XErrorEvent *e) {
     // Assume the error occurred only in the first call to
     // WECopyPixmap after WEGetCurrentWallpaperOrCreate was called
     if (e->error_code == BadPixmap || e->error_code == BadGC) {
-        WEImtoolsDestruct();
-
-        char opt_append[20] = "--ignore-current";
-        DW("Bad Pixmap, restarting program with %s.", opt_append);
-        // calculate command size
-        int size = opts.argc + strlen(opt_append) + 1;
-        for  (int i = 0; i < opts.argc; ++i) {
-            size += strlen(opts.argv[i]);
-        }
-        // build cmd
-        char *cmd = (char*)malloc(size * sizeof(char));
-        for  (int i = 0; i < opts.argc; ++i) {
-            strcat(cmd, opts.argv[i]);
-            strcat(cmd, " ");
-        }
-        strcat(cmd, opt_append);
-        // restart
-        system(cmd);
+        // FIXME using argc and argv to restart program will
+        // cause XOpenDisply to fail
+        DE("Bad Pixmap, try runing with --ignore-current.");
     }
     return 0;
 }
@@ -75,7 +60,6 @@ void WEImtoolsInit() {
 void WEImtoolsDestruct() {
     if (oldclient) XKillClient(disp, oldclient);
     XCloseDisplay(disp);
-
     WEFreeMonitorList(monitor_l);
     disp = NULL, vis = NULL, scr = NULL, root = 0;
 }
