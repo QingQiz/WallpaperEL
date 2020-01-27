@@ -25,14 +25,11 @@ we --help
 ## TODO
 
 - Features
-
-    - more filling method
-    - video wallpaper
-    - wallpaper with sound
+  - more filling method
+  - video wallpaper
+  - wallpaper with sound
     
-
 - FIXME
-
-    - `wallpaper.c` needs refactoring
-    - can not show help message without X
+  - can not show help message without X
+  - excessive memory usage during `we -m0 <many_files> --fifo -t 2`
 
