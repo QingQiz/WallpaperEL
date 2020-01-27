@@ -32,13 +32,11 @@ static void WESetWallpaper(Display *display, Pixmap pmap) {
 }
 
 static Pixmap WEGetCurrentWallpaperOrCreate() {
-    if (opts.ignore_current) {
-        return XCreatePixmap(disp, root, scr->width, scr->height, depth);
-    }
     // get property if has, or return None
     Atom prop_root = XInternAtom(disp, "_XROOTPMAP_ID", True);
     Atom prop_esetroot = XInternAtom(disp, "ESETROOT_PMAP_ID", True);
     Pixmap pmap = 0;
+    Pixmap pmap_ret = XCreatePixmap(disp, root, scr->width, scr->height, depth);
 
     // has property ?
     if (prop_root != None && prop_esetroot != None) {
@@ -60,10 +58,11 @@ static Pixmap WEGetCurrentWallpaperOrCreate() {
         if (data_root) XFree(data_root);
         if (data_esetroot) XFree(data_esetroot);
     }
-    if (!pmap) {
-        return XCreatePixmap(disp, root, scr->width, scr->height, depth);
+    if (!pmap || opts.ignore_current) {
+        return pmap_ret;
     }
 
+    // flg: is NOT all monitors are set
     int cnt = 0, flg = 1;
     if (opts.monitor[MAX_MONITOR_N] != NULL) flg = 0;
     for (int i = 0; i < MAX_MONITOR_N; ++i) if (opts.monitor[i] != NULL) cnt++;
@@ -71,10 +70,9 @@ static Pixmap WEGetCurrentWallpaperOrCreate() {
 
     // fifo or not set all monitor, use old pixmap
     if (flg || opts.fifo) {
-        oldclient = 0;
-        return pmap;
+        WECopyPixmap(disp, pmap_ret, pmap);
     }
-    return XCreatePixmap(disp, root, scr->width, scr->height, depth);
+    return pmap_ret;
 }
 
 static Pixmap WEGetNextWallpaper(Pixmap origin) {
@@ -194,6 +192,7 @@ static void WEExit() {
 
 static void WESigintHandler(int signo) {
     if (signo == SIGINT) {
+        puts("");
         DW("SIGINT recived, exit.");
         WEExit();
         WEImtoolsDestruct();
