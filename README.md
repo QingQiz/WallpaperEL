@@ -30,6 +30,6 @@ we --help
   - wallpaper with sound
     
 - FIXME
-  - can not show help message without X
-  - excessive memory usage during `we -m0 <many_files> --fifo -t 2`
+  - --loop has some bugs (`we -m0 a.png && we -m0 b.png c.png --fifo -d 2 --loop`)
+  - excessive memory usage (`we -m0 <a_lot_of_files> --fifo -t 2`)
 
