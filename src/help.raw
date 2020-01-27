@@ -13,6 +13,7 @@ OPTIONS
  -t dt                          Interval when using picture list When this value is
                                 less than 1.5, --fifo will be ignored, default 60
               --loop            slideshow wallpaper loop
+              --ignore-current  Create a new wallpaper instead of rendering on the current wallpaper
 
 EXAMPLE
  " PACKAGE " -m0 a.jpg -m2 b.jpg --else c.png d.png e.png -t 20 --fifo

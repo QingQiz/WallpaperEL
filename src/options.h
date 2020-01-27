@@ -18,6 +18,7 @@ typedef struct {
     char list_monitors;
     char fifo;
     char loop;
+    char ignore_current;
     float dt;
 } we_option;
 
@@ -26,6 +27,7 @@ enum we_long_opt {
     WE_ELSE,
     WE_FADE_IN_FADE_OUT,
     WE_LOOP,
+    WE_IGNORE_CURRENT,
 };
 
 extern we_option opts;

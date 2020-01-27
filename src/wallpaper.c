@@ -32,6 +32,9 @@ static void WESetWallpaper(Display *display, Pixmap pmap) {
 }
 
 static Pixmap WEGetCurrentWallpaperOrCreate() {
+    if (opts.ignore_current) {
+        return XCreatePixmap(disp, root, scr->width, scr->height, depth);
+    }
     // get property if has, or return None
     Atom prop_root = XInternAtom(disp, "_XROOTPMAP_ID", True);
     Atom prop_esetroot = XInternAtom(disp, "ESETROOT_PMAP_ID", True);
