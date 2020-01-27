@@ -1,3 +1,5 @@
+#include <stdlib.h>
+#include <string.h>
 #include <X11/Xlib.h>
 
 #include "imtools.h"
@@ -17,8 +19,27 @@ int monitor_n;
 static image_list *im_m_now[MAX_MONITOR_N + 1] = {(image_list*)NULL};
 
 static int WEXErrorHandler(Display *d, XErrorEvent *e) {
-    if (e->error_code == BadPixmap) {
-        assert(!opts.fifo, "Bad Pixmap, try running without --fifo");
+    // Assume the error occurred only in the first call to
+    // WECopyPixmap after WEGetCurrentWallpaperOrCreate was called
+    if (e->error_code == BadPixmap || e->error_code == BadGC) {
+        WEImtoolsDestruct();
+
+        char opt_append[20] = "--ignore-current";
+        DW("Bad Pixmap, restarting program with %s.", opt_append);
+        // calculate command size
+        int size = opts.argc + strlen(opt_append) + 1;
+        for  (int i = 0; i < opts.argc; ++i) {
+            size += strlen(opts.argv[i]);
+        }
+        // build cmd
+        char *cmd = (char*)malloc(size * sizeof(char));
+        for  (int i = 0; i < opts.argc; ++i) {
+            strcat(cmd, opts.argv[i]);
+            strcat(cmd, " ");
+        }
+        strcat(cmd, opt_append);
+        // restart
+        system(cmd);
     }
     return 0;
 }
