@@ -12,15 +12,13 @@ typedef struct file_list_s {
 } file_list;
 
 typedef struct {
-    char list_monitors;
-
+    int argc;
+    char **argv;
     file_list* monitor[MAX_MONITOR_N + 1];
-
+    char list_monitors;
     char fifo;
-
-    float dt;
-
     char loop;
+    float dt;
 } we_option;
 
 enum we_long_opt {

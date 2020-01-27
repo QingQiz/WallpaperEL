@@ -18,12 +18,9 @@ we_option opts;
 
 
 static void init_opts() {
-    opts.list_monitors = 0;
-    opts.fifo = 0;
-    opts.dt = 60;
-    opts.loop = 0;
+    memset(&opts, 0, sizeof(opts));
 
-    memset(opts.monitor, 0, sizeof(opts.monitor));
+    opts.dt = 60;
 }
 
 static void usage() {
@@ -33,21 +30,21 @@ static void usage() {
     exit(-1);
 }
 
-static file_list* create_file_list_by_options(int argc, char **argv) {
+static file_list* create_file_list_by_options() {
     file_list *head = (file_list*)malloc(sizeof(file_list));
     file_list *iter = head;
-    iter->file_name = argv[optind++];
+    iter->file_name = opts.argv[optind++];
 
-    while (optind < argc && argv[optind][0] != '-') {
+    while (optind < opts.argc && opts.argv[optind][0] != '-') {
         iter->next = (file_list*)malloc(sizeof(file_list));
         iter = iter->next;
-        iter->file_name = argv[optind++];
+        iter->file_name = opts.argv[optind++];
     }
     iter->next = head;
     return head;
 }
 
-void WEParseOpts(int argc, char**argv) {
+void WEParseOpts(int argc, char **argv) {
     char is_opt_set = 0;
 
     init_opts();
@@ -55,6 +52,7 @@ void WEParseOpts(int argc, char**argv) {
     int optret, l_optidx;
     int mi;
 
+    opts.argc = argc, opts.argv = argv;
     while (1) {
         optret = getopt_long(argc, argv, "hm:t:", long_options, &l_optidx);
         if (optret == -1) break;
@@ -66,7 +64,7 @@ void WEParseOpts(int argc, char**argv) {
                 D("opt list-monitors set");
                 break;
             case WE_ELSE:
-                opts.monitor[MAX_MONITOR_N] = create_file_list_by_options(argc, argv);
+                opts.monitor[MAX_MONITOR_N] = create_file_list_by_options();
                 break;
             case WE_FADE_IN_FADE_OUT:
                 opts.fifo = 1;
@@ -84,7 +82,7 @@ void WEParseOpts(int argc, char**argv) {
                 assert(mi < monitor_n && mi >= 0, "-m%d: index error, no such monitor", mi);
                 assert(optind < argc && argv[optind][0] != '-', "-m%d: require a file or file list", mi);
 
-                opts.monitor[mi] = create_file_list_by_options(argc, argv);
+                opts.monitor[mi] = create_file_list_by_options();
 
                 break;
             case 't':
