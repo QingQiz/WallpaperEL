@@ -19,10 +19,10 @@ int WEGetImageWidth(Imlib_Image im);
 int WEGetImageHeight(Imlib_Image im);
 
 // operations on image
-Imlib_Image WESetImageAlpha(Imlib_Image im, int alpha);
 void WEFreeImage(Imlib_Image im);
-void WECopyPixmap(Display* disp, Pixmap pm_d, Pixmap pm_s);
 void WELoadNextImage();
+void WECopyPixmap(Display* disp, Pixmap pm_d, Pixmap pm_s);
+Imlib_Image WESetImageAlpha(Imlib_Image im, int alpha);
 
 // rendering
 void WERenderImagePartOnDrawableAtSize(

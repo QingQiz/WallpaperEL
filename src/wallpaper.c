@@ -179,6 +179,7 @@ static void WEExit() {
 
     XSync(disp, False);
     XSync(disp2, False);
+    D("Free pixmap %lu", current_pixmap);
     XFreePixmap(disp, current_pixmap);
 
     // set new pixmap as wallpaper
@@ -202,6 +203,7 @@ void WESetWallpaperByOptions() {
         DW("Can not catch SIGINT");
     }
     Pixmap origin = WEGetCurrentWallpaperOrCreate();
+    D("current: %lu", origin);
     Pixmap head = WEGetNextWallpaper(origin);
     Pixmap iter = head, org = origin;
 
@@ -220,9 +222,13 @@ void WESetWallpaperByOptions() {
     }
 
     do {
-        if (iter != org) XFreePixmap(disp, iter);
+        if (iter != org) {
+            D("Free pixmap %lu", iter);
+            XFreePixmap(disp, iter);
+        }
         iter = WEGetNextWallpaper(origin);
     } while (iter != head);
+    D("Free pixmap %lu", origin);
     XFreePixmap(disp, origin);
 
     WEExit();

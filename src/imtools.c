@@ -80,12 +80,16 @@ Imlib_Image WESetImageAlpha(Imlib_Image im, int alpha) {
 
     im_aph = imlib_create_image(w, h);
     imlib_context_set_image(im_aph);
+    imlib_image_clear();
+
     imlib_image_set_has_alpha(1);
     imlib_context_set_color(0, 0, 0, alpha);
     imlib_image_fill_rectangle(0, 0, w, h);
 
     im_cpy = imlib_create_image(w, h);
     imlib_context_set_image(im_cpy);
+    imlib_image_clear();
+
     imlib_image_set_has_alpha(1);
     imlib_blend_image_onto_image(im, 1, 0, 0, w, h, 0, 0, w, h);
     imlib_image_copy_alpha_to_image(im_aph, 0, 0);
@@ -206,6 +210,7 @@ void WELoadNextImage() {
 }
 
 void WERenderCurrentImageToPixmap(Pixmap pmap, int alpha) {
+    assert(0 <= alpha && alpha <= 255, "Bad alpha %d", alpha);
     static Imlib_Image im;
     for (int i = 0; i < monitor_n; ++i) {
         if (opts.monitor[i] == NULL) {
@@ -221,10 +226,8 @@ void WERenderCurrentImageToPixmap(Pixmap pmap, int alpha) {
         D("Rendering pixmap %lu with alpha %d", pmap, alpha);
         if (alpha != 255) {
             im = WESetImageAlpha(im, alpha);
-
-            WEBgFilled(pmap, im, monitor_l[i].x, monitor_l[i].y, monitor_l[i].width, monitor_l[i].height);
-        } else {
-            WEBgFilled(pmap, im, monitor_l[i].x, monitor_l[i].y, monitor_l[i].width, monitor_l[i].height);
         }
+        WEBgFilled(pmap, im, monitor_l[i].x, monitor_l[i].y, monitor_l[i].width, monitor_l[i].height);
     }
 }
+
