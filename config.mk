@@ -1,5 +1,5 @@
 EXEC_NAME = we
-VERSION   = v0.2.2
+VERSION   = $(shell git tag | tail -n1)
 
 
 CFLAGS   = -Wall -Wextra -c \
