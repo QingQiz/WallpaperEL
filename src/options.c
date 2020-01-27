@@ -24,11 +24,10 @@ static void init_opts() {
     opts.dt = 60;
 }
 
-static void usage() {
+void usage() {
     fputs(
       #include "help.inc"
     , stdout);
-    exit(-1);
 }
 
 static file_list* create_file_list_by_options() {
@@ -93,9 +92,15 @@ void WEParseOpts(int argc, char **argv) {
                 opts.dt = atof(optarg);
                 break;
             case 'h':
+                usage();
+                exit(0);
             default:
                 usage();
+                exit(-1);
         }
     }
-    if (!is_opt_set) usage();
+    if (!is_opt_set){
+        usage();
+        exit(-1);
+    }
 }

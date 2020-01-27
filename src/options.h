@@ -34,5 +34,6 @@ extern we_option opts;
 
 
 void parse_opts(int argc, char**argv);
+void usage();
 #endif
 
