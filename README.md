@@ -30,6 +30,5 @@ we --help
   - wallpaper with sound
     
 - FIXME
-  - --loop has some bugs (`we -m0 a.png && we -m0 b.png c.png --fifo -t 2 --loop`)
   - excessive memory usage (`we -m0 <a_lot_of_files> --fifo -t 2`)
 
