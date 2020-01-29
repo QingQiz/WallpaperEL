@@ -3,7 +3,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#define DE(format, args...) fprintf(stderr, "(\033[31;1mEE\033[m)  "format"\n", ##args)
+#define DE(format, args...) fprintf(stderr, "(\033[31;1mEE\033[m)  "format"\n", ##args);exit(-1)
 #define DW(format, args...) fprintf(stderr, "(\033[33;1mWW\033[m)  "format"\n", ##args)
 #define DI(format, args...) fprintf(stderr, "(\033[34;1mII\033[m)  "format"\n", ##args)
 
