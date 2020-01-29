@@ -77,6 +77,7 @@ static Pixmap WEGetCurrentWallpaperOrCreate() {
 
 static Pixmap WEGetNextWallpaper(Pixmap origin) {
     static pixmap_list *pmap_l = NULL;
+    static pixmap_list *pmap_l_head = NULL;
     static char is_list_build = 0;
 
     if (!is_list_build) {
@@ -120,6 +121,7 @@ static Pixmap WEGetNextWallpaper(Pixmap origin) {
             }
         }
         iter->next = pmap_l;
+        pmap_l_head = pmap_l;
     }
 
     // return if the wallpaper has been rendered
@@ -130,7 +132,7 @@ static Pixmap WEGetNextWallpaper(Pixmap origin) {
     }
 
     pixmap_list *head = pmap_l;
-    if (opts.dt < MIN_FIFO_ENABLE_TIME) {
+    if (opts.dt < MIN_FIFO_ENABLE_TIME) { // render immediately
         // render out all possible wallpapers
         // ignore fifo
         do {
@@ -145,8 +147,9 @@ static Pixmap WEGetNextWallpaper(Pixmap origin) {
 
         pmap_l = pmap_l->next;
         return head->pmap;
-    } else {
+    } else { // lazy rendering
         int cnt = opts.fifo ? FIFO_SETP : 1;
+        static char is_first_cycle = 1;
 
         WELoadNextImage();
 
@@ -159,6 +162,20 @@ static Pixmap WEGetNextWallpaper(Pixmap origin) {
                 WERenderCurrentImageToPixmap(pmap_l->pmap, (int)(255. - 255. / FIFO_SETP * cnt));
             }
             pmap_l = pmap_l->next;
+        }
+        if (is_first_cycle && pmap_l == pmap_l_head && opts.fifo) {
+            // the next is the second cycle
+            // the next pixmap is the first pixmap, free first pixmap and re-render
+            cnt = FIFO_SETP;
+            pixmap_list *iter = pmap_l;
+
+            while (cnt--) {
+                D("Free pixmap %lu", iter->pmap);
+                XFreePixmap(disp, iter->pmap);
+                iter->pmap = 0;
+                iter = iter->next;
+            }
+            is_first_cycle = 0;
         }
         pmap_l = head->next;
         return head->pmap;
