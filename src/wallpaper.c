@@ -163,17 +163,25 @@ static Pixmap WEGetNextWallpaper(Pixmap origin) {
             }
             pmap_l = pmap_l->next;
         }
-        if (is_first_cycle && pmap_l == pmap_l_head && opts.fifo) {
-            // the next is the second cycle
-            // the next pixmap is the first pixmap, free first pixmap and re-render
-            cnt = FIFO_SETP;
+        if (is_first_cycle && pmap_l == pmap_l_head && opts.fifo && opts.loop) {
+            // the next cycle is the second cycle
+            // the next pixmap is the first pixmap
             pixmap_list *iter = pmap_l;
 
-            while (cnt--) {
-                D("Free pixmap %lu", iter->pmap);
-                XFreePixmap(disp, iter->pmap);
-                iter->pmap = 0;
-                iter = iter->next;
+            if (head == pmap_l_head) {
+                // current pixmap is the first pixmap
+                // this means there is only one possible wallpaper
+                DI("only one wallpaper, --loop was disabled.");
+                opts.loop = 0;
+            } else {
+                // free first pixmap and mark for re-rendering
+                cnt = FIFO_SETP;
+                while (cnt--) {
+                    D("Free pixmap %lu", iter->pmap);
+                    XFreePixmap(disp, iter->pmap);
+                    iter->pmap = 0;
+                    iter = iter->next;
+                }
             }
             is_first_cycle = 0;
         }
