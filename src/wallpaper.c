@@ -157,12 +157,14 @@ static Pixmap WEGetNextWallpaper(Pixmap origin) {
         WELoadNextImage();
 
         while (cnt--) {
-            pmap_l->pmap = XCreatePixmap(disp, root, scr->width, scr->width, depth);
-            WECopyPixmap(disp, pmap_l->pmap, origin);
-            if (cnt == 0) {
-                WERenderCurrentImageToPixmap(pmap_l->pmap, 255);
-            } else {
-                WERenderCurrentImageToPixmap(pmap_l->pmap, (int)(255. - 255. / FIFO_SETP * cnt));
+            if (pmap_l->pmap == 0) {
+                pmap_l->pmap = XCreatePixmap(disp, root, scr->width, scr->width, depth);
+                WECopyPixmap(disp, pmap_l->pmap, origin);
+                if (cnt == 0) {
+                    WERenderCurrentImageToPixmap(pmap_l->pmap, 255);
+                } else {
+                    WERenderCurrentImageToPixmap(pmap_l->pmap, (int)(255. - 255. / FIFO_SETP * cnt));
+                }
             }
             pmap_l = pmap_l->next;
         }
@@ -180,9 +182,11 @@ static Pixmap WEGetNextWallpaper(Pixmap origin) {
                 // free first pixmap and mark for re-rendering
                 cnt = FIFO_SETP;
                 while (cnt--) {
-                    D("Free pixmap %lu", iter->pmap);
-                    XFreePixmap(disp, iter->pmap);
-                    iter->pmap = 0;
+                    if (iter->pmap != current_pixmap) {
+                        D("Free pixmap %lu", iter->pmap);
+                        XFreePixmap(disp, iter->pmap);
+                        iter->pmap = 0;
+                    }
                     iter = iter->next;
                 }
             }
