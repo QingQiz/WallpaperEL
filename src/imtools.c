@@ -211,6 +211,17 @@ void WELoadNextImage() {
             assert(im_m[i]->im, "Can not load %s", opts.monitor[i]->file_name);
         }
 
+        if (opts.less_memory) {
+            image_list *to_free = im_m[i]->prev;
+            do {
+                if (to_free->im == NULL) break;
+                if (to_free == im_m[i]) break;
+                D("Free Image %lu", (unsigned long)to_free->im);
+                WEFreeImage(to_free->im);
+                to_free->im = NULL;
+            } while (0);
+        }
+
         im_m_now[i] = im_m[i];
         im_m[i] = im_m[i]->next;
         opts.monitor[i] = opts.monitor[i]->next;

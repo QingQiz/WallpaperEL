@@ -19,6 +19,7 @@ typedef struct {
     char fifo;
     char loop;
     char ignore_current;
+    char less_memory;
     float dt;
 } we_option;
 
@@ -28,6 +29,7 @@ enum we_long_opt {
     WE_FADE_IN_FADE_OUT,
     WE_LOOP,
     WE_IGNORE_CURRENT,
+    WE_LESS_MEMORY,
 };
 
 extern we_option opts;

@@ -13,6 +13,7 @@ static struct option long_options[] = {
     {"loop",          no_argument,       0, WE_LOOP},
     {"help",          no_argument,       0, 'h'},
     {"ignore-current",no_argument,       0, WE_IGNORE_CURRENT},
+    {"less-memory",   no_argument,       0, WE_LESS_MEMORY},
     {0,               0,                 0, 0},
 };
 we_option opts;
@@ -74,6 +75,9 @@ void WEParseOpts(int argc, char **argv) {
                 break;
             case WE_IGNORE_CURRENT:
                 opts.ignore_current = 1;
+                break;
+            case WE_LESS_MEMORY:
+                opts.less_memory = 1;
                 break;
             case 'm':
                 if (*optarg == 'l') {
