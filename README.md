@@ -30,7 +30,6 @@ we --help
   - wallpaper with sound
     
 - FIXME
-  - excessive memory usage (`we -m0 <a_lot_of_files> --fifo -t 2`)
 
 ## Testing
 
