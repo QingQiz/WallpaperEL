@@ -131,7 +131,7 @@ static void WERenderAllWallpaper(pixmap_list *pmap_l) {
     } while (pmap_l != head);
 }
 
-static void WERenderAStep(pixmap_list *pmap_l, Pixmap origin) {
+static pixmap_list* WERenderAStep(pixmap_list *pmap_l, Pixmap origin) {
     WELoadNextImage();
     int cnt = opts.fifo ? FIFO_SETP : 1;
     while (cnt--) {
@@ -147,6 +147,7 @@ static void WERenderAStep(pixmap_list *pmap_l, Pixmap origin) {
         }
         pmap_l = pmap_l->next;
     }
+    return pmap_l;
 }
 
 static Pixmap WEGetNextWallpaper(Pixmap origin) {
@@ -170,13 +171,13 @@ static Pixmap WEGetNextWallpaper(Pixmap origin) {
 
     pixmap_list *head = pmap_l;
     if (pmap_l->pmap == 0) { // lazy rendering
-        WERenderAStep(pmap_l, origin);
+        pixmap_list *next_image_first_pixmap = WERenderAStep(pmap_l, origin);
 
         static char is_first_cycle = 1;
-        if (is_first_cycle && pmap_l == pmap_l_head && opts.fifo && opts.loop) {
+        if (is_first_cycle && next_image_first_pixmap == pmap_l_head && opts.loop) {
             // the next cycle is the second cycle
             // the next pixmap is the first pixmap
-            pixmap_list *iter = pmap_l;
+            pixmap_list *iter = next_image_first_pixmap;
 
             if (head == pmap_l_head) {
                 // current pixmap is the first pixmap
@@ -187,12 +188,14 @@ static Pixmap WEGetNextWallpaper(Pixmap origin) {
                 // free first pixmap and mark for re-rendering
                 int cnt = FIFO_SETP;
                 while (cnt--) {
-                    if (iter->pmap != current_pixmap) {
-                        // free only if not current
+                    do {
+                        if (iter->pmap == current_pixmap) break;
+                        if (iter->pmap == 0) break;
+
                         D("Free pixmap %lu", iter->pmap);
                         XFreePixmap(disp, iter->pmap);
                         iter->pmap = 0;
-                    }
+                    } while (0);
                     iter = iter->next;
                 }
             }
