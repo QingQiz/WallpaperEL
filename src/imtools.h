@@ -6,7 +6,7 @@
 
 typedef struct image_list_s {
     Imlib_Image im;
-    struct image_list_s *next;
+    struct image_list_s *next, *prev;
 } image_list;
 
 

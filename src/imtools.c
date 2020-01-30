@@ -164,7 +164,8 @@ void WELoadNextImage() {
         if (im_m[i] == NULL) {
             im_m[i] = (image_list*)malloc(sizeof(image_list));
             im_m[i]->im = 0;
-            im_m[i]->next = NULL;
+            im_m[i]->next = im_m[i];
+            im_m[i]->prev = im_m[i];
         }
 
         // load all if dt < MIN_FIFO_ENABLE_TIME else load when necessary
@@ -186,6 +187,7 @@ void WELoadNextImage() {
 
             while (fiter != fhead) {
                 piter->next = (image_list*)malloc(sizeof(image_list));
+                piter->next->prev = piter;
                 piter = piter->next;
                 if (opts.dt < MIN_FIFO_ENABLE_TIME) {
                     D("loading %s", fiter->file_name);
@@ -197,6 +199,7 @@ void WELoadNextImage() {
                 fiter = fiter->next;
             }
             piter->next = phead;
+            piter->next->prev = piter;
             im_m[i] = phead;
 
             im_loaded = 1;

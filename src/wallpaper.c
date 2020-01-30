@@ -95,8 +95,9 @@ static Pixmap WEGetNextWallpaper(Pixmap origin) {
         int cnt = (opts.fifo && opts.dt >= MIN_FIFO_ENABLE_TIME) ? FIFO_SETP - 1 : 0;
         while (cnt--) {
             iter->next = (pixmap_list*)malloc(sizeof(pixmap_list));
+            iter->next->prev = iter;
+            iter->next->pmap = 0;
             iter = iter->next;
-            iter->pmap = 0;
         }
 
         while (1) {
@@ -116,11 +117,13 @@ static Pixmap WEGetNextWallpaper(Pixmap origin) {
             int cnt = (opts.fifo && opts.dt >= MIN_FIFO_ENABLE_TIME) ? FIFO_SETP : 1;
             while (cnt--) {
                 iter->next = (pixmap_list*)malloc(sizeof(pixmap_list));
+                iter->next->prev = iter;
+                iter->next->pmap = 0;
                 iter = iter->next;
-                iter->pmap = 0;
             }
         }
         iter->next = pmap_l;
+        iter->next->prev = iter;
         pmap_l_head = pmap_l;
     }
 

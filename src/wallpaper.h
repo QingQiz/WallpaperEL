@@ -5,7 +5,7 @@
 
 typedef struct pixmap_list_s {
     Pixmap pmap;
-    struct pixmap_list_s *next;
+    struct pixmap_list_s *next, *prev;
 } pixmap_list;
 
 void WESetWallpaperByOptions();
