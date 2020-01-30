@@ -150,10 +150,11 @@ static pixmap_list* WERenderAStep(pixmap_list *pmap_l, Pixmap origin) {
     return pmap_l;
 }
 
-static Pixmap WEGetNextWallpaper(Pixmap origin) {
+static Pixmap WEGetNextWallpaper(Pixmap origin, pixmap_list **current_pointer) {
     static pixmap_list *pmap_l = NULL;
     static pixmap_list *pmap_l_head = NULL;
     static char is_list_build = 0;
+    static char more_than_one_wallpaper = 1;
 
     if (!is_list_build) {
         is_list_build = 1;
@@ -167,6 +168,12 @@ static Pixmap WEGetNextWallpaper(Pixmap origin) {
             // ignore fifo
             WERenderAllWallpaper(pmap_l);
         }
+
+        pixmap_list *iter = pmap_l;
+        for (int i = 0; i < (opts.fifo ? FIFO_SETP : 1); ++i) {
+            iter = iter->next;
+        }
+        if (iter == pmap_l) more_than_one_wallpaper = 0;
     }
 
     pixmap_list *head = pmap_l;
@@ -186,7 +193,7 @@ static Pixmap WEGetNextWallpaper(Pixmap origin) {
                 opts.loop = 0;
             } else {
                 // free first pixmap and mark for re-rendering
-                int cnt = FIFO_SETP;
+                int cnt = opts.fifo ? FIFO_SETP : 0;
                 while (cnt--) {
                     do {
                         if (iter->pmap == current_pixmap) break;
@@ -202,7 +209,7 @@ static Pixmap WEGetNextWallpaper(Pixmap origin) {
             is_first_cycle = 0;
         }
     }
-    if (opts.less_memory) {
+    if (opts.less_memory && more_than_one_wallpaper) {
         pixmap_list *to_free = pmap_l->prev->prev;
         do {
             if (opts.dt < MIN_FIFO_ENABLE_TIME) break;
@@ -215,12 +222,14 @@ static Pixmap WEGetNextWallpaper(Pixmap origin) {
             to_free->pmap = 0;
         } while (0);
     }
+    if (current_pointer != NULL) *current_pointer = pmap_l;
     pmap_l = pmap_l->next;
     return pmap_l->prev->pmap;
 }
 
 static void WEExit() {
     if (current_pixmap == 0) return;
+    Pixmap to_free = current_pixmap;
 
     // open new display
     Display *disp2 = XOpenDisplay(NULL);
@@ -234,12 +243,13 @@ static void WEExit() {
 
     XSync(disp, False);
     XSync(disp2, False);
-    D("Free pixmap %lu", current_pixmap);
-    XFreePixmap(disp, current_pixmap);
 
     // set new pixmap as wallpaper
     WESetWallpaper(disp2, pmap_final);
     XSetCloseDownMode(disp2, RetainPermanent);
+
+    D("Free pixmap %lu", to_free);
+    XFreePixmap(disp, to_free);
 
     XCloseDisplay(disp2);
 }
@@ -260,30 +270,40 @@ void WESetWallpaperByOptions() {
     }
     Pixmap origin = WEGetCurrentWallpaperOrCreate();
     D("current: %lu", origin);
-    Pixmap head = WEGetNextWallpaper(origin);
-    Pixmap iter = head, org = origin;
+    pixmap_list *pmap_head = NULL, *current_pmap_pointer = NULL;
+    Pixmap iter = 0;
 
     while (1) {
         int cnt = (opts.fifo && opts.dt >= MIN_FIFO_ENABLE_TIME) ? FIFO_SETP : 1;
 
         while (cnt--) {
+            if (pmap_head == NULL) {
+                iter = WEGetNextWallpaper(origin, &current_pmap_pointer);
+                pmap_head = current_pmap_pointer;
+            } else {
+                iter = WEGetNextWallpaper(current_pixmap, &current_pmap_pointer);
+            }
+
             WESetWallpaper(disp, iter);
-            org = iter;
-            iter = WEGetNextWallpaper(org);
             if (cnt) usleep((int)(0.61f / FIFO_SETP * 1000000));
         }
 
-        if (iter == head && !opts.loop) break;
+        if (current_pmap_pointer->next == pmap_head && !opts.loop) break;
         usleep((int)(opts.dt * 1000000));
     }
 
+    current_pmap_pointer = pmap_head;
     do {
-        if (iter != org) {
-            D("Free pixmap %lu", iter);
-            XFreePixmap(disp, iter);
-        }
-        iter = WEGetNextWallpaper(origin);
-    } while (iter != head);
+        do {
+            if (current_pmap_pointer->pmap == current_pixmap) break;
+            if (current_pmap_pointer->pmap == 0) break;
+
+            D("Free pixmap %lu", current_pmap_pointer->pmap);
+            XFreePixmap(disp, current_pmap_pointer->pmap);
+        } while (0);
+        current_pmap_pointer = current_pmap_pointer->next;
+    } while (current_pmap_pointer != pmap_head);
+
     D("Free pixmap %lu", origin);
     XFreePixmap(disp, origin);
 
