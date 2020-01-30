@@ -32,3 +32,13 @@ we --help
 - FIXME
   - excessive memory usage (`we -m0 <a_lot_of_files> --fifo -t 2`)
 
+## Testing
+
+```shell
+make test
+cd test
+./test.sh
+```
+
+This requires you to observe whether the wallpaper switch is as expected.
+
