@@ -20,6 +20,7 @@ typedef struct {
     char loop;
     char ignore_current;
     char less_memory;
+    char *bgm;
     float dt;
 } we_option;
 
@@ -30,6 +31,7 @@ enum we_long_opt {
     WE_LOOP,
     WE_IGNORE_CURRENT,
     WE_LESS_MEMORY,
+    WE_BGM,
 };
 
 extern we_option opts;

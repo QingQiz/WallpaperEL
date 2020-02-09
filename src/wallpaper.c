@@ -4,11 +4,13 @@
 
 #include "wallpaper.h"
 #include "mmonitor.h"
-#include "debug.h"
 #include "imtools.h"
 #include "options.h"
+#include "atools.h"
+#include "debug.h"
 
 static Pixmap current_pixmap = 0;
+static pthread_t bgm_pthread;
 
 static void WESetWallpaper(Display *display, Pixmap pmap) {
     Atom prop_root = XInternAtom(display, "_XROOTPMAP_ID", False);
@@ -252,6 +254,11 @@ static void WEExit() {
     XFreePixmap(disp, to_free);
 
     XCloseDisplay(disp2);
+
+    if (opts.bgm != NULL){
+        // pthread_kill(bgm_pthread, SIGINT);
+        WEAtoolsDestruct();
+    }
 }
 
 static void WESigintHandler(int signo) {
@@ -280,6 +287,10 @@ void WESetWallpaperByOptions() {
             if (pmap_head == NULL) {
                 iter = WEGetNextWallpaper(origin, &current_pmap_pointer);
                 pmap_head = current_pmap_pointer;
+                if (opts.bgm != NULL) {
+                    WEAtoolsInit(opts.bgm);
+                    pthread_create(&bgm_pthread, NULL, (void*)WEAtoolsPlay, NULL);
+                }
             } else {
                 iter = WEGetNextWallpaper(current_pixmap, &current_pmap_pointer);
             }

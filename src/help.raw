@@ -15,6 +15,7 @@ OPTIONS
               --ignore-current  Create a new wallpaper instead of rendering on the current wallpaper
               --less-memory     Free up memory immediately after the image or pixmap is used,
                                 not enabled by default
+              --bgm             Set background music (only supports wav)
 
 EXAMPLE
  " PACKAGE " -m0 a.jpg -m2 b.jpg --else c.png d.png e.png -t 20 --fifo
