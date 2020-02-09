@@ -5,6 +5,7 @@ addons:
       - libx11-dev
       - libimlib2-dev
       - libxrandr-dev
+      - libasound2-dev
 script:
   - make
 compiler:
