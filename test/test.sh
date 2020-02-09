@@ -78,9 +78,15 @@ test_less_memort() {
 	./we -m0 $i1 $i2 --less-memory --loop -t2 --fifo
 }
 
+test_bgm() {
+	ask "test bgm"
+	./we -m0 $i3 $i1 -t 5 --loop --fifo --bgm ./b.wav
+}
+
 query_n_exec "test -ml ?" test_mmonitor
 query_n_exec "test --loop and --fifo ?" test_loop_n_fifo
 query_n_exec "test --less-memory ?" test_less_memort
+query_n_exec "test --bgm ?" test_bgm
 
 ask "all test done.."
 
