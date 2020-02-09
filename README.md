@@ -27,9 +27,9 @@ we --help
 - Features
   - more filling method
   - video wallpaper
-  - wallpaper with sound
     
 - FIXME
+  - images should be loaded asynchornously using multiple threads
 
 ## Testing
 
