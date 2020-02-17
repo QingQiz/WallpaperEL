@@ -8,6 +8,7 @@ snd_pcm_t *handler;
 snd_pcm_hw_params_t *params;
 
 sem_t sem_bgm_start;
+extern int sig_exit;
 
 char *org_data = NULL;
 size_t org_size;
@@ -16,6 +17,7 @@ char *pcm_data = NULL;
 size_t pcm_size;
 
 audio_header_t header;
+
 
 static char WEAtoolsReadDataFromPcm(void *p, size_t size) {
     static char *position = NULL;
@@ -218,8 +220,8 @@ void WEAtoolsPlay() {
     while (1) {
         while (WEAtoolsReadDataFromPcm(buffer, buffer_size) == 0) {
             snd_pcm_writei(handler, buffer, header.sample_size);
+            if (sig_exit) {WEAtoolsDestruct(); return;}
         }
-        // DI("bgm end");
     }
     free(buffer);
 }
