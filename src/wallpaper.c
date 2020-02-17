@@ -1,6 +1,7 @@
 #include <X11/Xatom.h>
 #include <unistd.h>
 #include <signal.h>
+#include <pthread.h>
 
 #include "wallpaper.h"
 #include "mmonitor.h"
@@ -9,8 +10,12 @@
 #include "atools.h"
 #include "debug.h"
 
-static Pixmap current_pixmap = 0;
-static pthread_t bgm_pthread;
+static Pixmap current_wallpaper = 0, origin_pixmap = 0, current_pixmap = 0;
+static pthread_t bgm_pthread, wallpaper_render_pthead, pixmap_free_pthread;
+static pixmap_list *pmap_l_now, *pmap_l_head;
+static sem_t sem_preloaded, sem_preload_limit, sem_start, sem_xlock, sem_used;
+
+int sig_exit;
 
 static void WESetWallpaper(Display *display, Pixmap pmap) {
     Atom prop_root = XInternAtom(display, "_XROOTPMAP_ID", False);
@@ -30,7 +35,8 @@ static void WESetWallpaper(Display *display, Pixmap pmap) {
     // draw new wallpaper
     D("Draw %lu", pmap);
     XFlush(display);
-    current_pixmap = pmap;
+
+    current_wallpaper = pmap;
 }
 
 static Pixmap WEGetCurrentWallpaperOrCreate() {
@@ -84,13 +90,15 @@ static pixmap_list* WEBuildWallpaperList() {
 
     pixmap_list *pmap_l = (pixmap_list*)malloc(sizeof(pixmap_list));
     pmap_l->pmap = 0;
+    pmap_l->status = UNUSED;
     pixmap_list *iter= pmap_l;
 
-    int cnt = (opts.fifo && opts.dt >= MIN_FIFO_ENABLE_TIME) ? FIFO_SETP - 1 : 0;
+    int cnt = opts.fifo ? FIFO_SETP - 1 : 0;
     while (cnt--) {
         iter->next = (pixmap_list*)malloc(sizeof(pixmap_list));
         iter->next->prev = iter;
         iter->next->pmap = 0;
+        iter->next->status = UNUSED;
         iter = iter->next;
     }
 
@@ -108,11 +116,12 @@ static pixmap_list* WEBuildWallpaperList() {
         }
         if (is_end) break;
 
-        int cnt = (opts.fifo && opts.dt >= MIN_FIFO_ENABLE_TIME) ? FIFO_SETP : 1;
+        int cnt = opts.fifo ? FIFO_SETP : 1;
         while (cnt--) {
             iter->next = (pixmap_list*)malloc(sizeof(pixmap_list));
             iter->next->prev = iter;
             iter->next->pmap = 0;
+            iter->next->status = UNUSED;
             iter = iter->next;
         }
     }
@@ -121,118 +130,116 @@ static pixmap_list* WEBuildWallpaperList() {
     return pmap_l;
 }
 
-static void WERenderAllWallpaper(pixmap_list *pmap_l) {
-    pixmap_list *head = pmap_l;
-    do {
-        pmap_l->pmap = XCreatePixmap(disp, root, scr->width, scr->width, depth);
+static void WERenderWallpaperAsync() {
+    Pixmap origin = WEGetCurrentWallpaperOrCreate();
+    if (origin_pixmap == 0) origin_pixmap = origin, current_pixmap = origin;
+    D("origin wallpaper: %lu", origin_pixmap);
 
-        WELoadNextImage();
-        WERenderCurrentImageToPixmap(pmap_l->pmap, 255);
+    pixmap_list *iter = NULL;
+    pixmap_list *head = NULL;
 
-        pmap_l = pmap_l->next;
-    } while (pmap_l != head);
-}
+    head = WEBuildWallpaperList();
+    pmap_l_head = head;
+    pmap_l_now = head;
 
-static pixmap_list* WERenderAStep(pixmap_list *pmap_l, Pixmap origin) {
-    WELoadNextImage();
-    int cnt = opts.fifo ? FIFO_SETP : 1;
-    while (cnt--) {
-        if (pmap_l->pmap == 0) {
-            // render only if not rendered
-            pmap_l->pmap = XCreatePixmap(disp, root, scr->width, scr->width, depth);
-            WECopyPixmap(disp, pmap_l->pmap, origin);
-            if (cnt == 0) {
-                WERenderCurrentImageToPixmap(pmap_l->pmap, 255);
-            } else {
-                WERenderCurrentImageToPixmap(pmap_l->pmap, (int)(255. - 255. / FIFO_SETP * cnt));
-            }
-        }
-        pmap_l = pmap_l->next;
+    int num_wallpaper = 1;
+    for (iter = head; iter->next != head; iter = iter->next) {
+        num_wallpaper++;
     }
-    return pmap_l;
-}
+    if (opts.loop && num_wallpaper == (opts.fifo ? FIFO_SETP: 1)) {
+        DI("There is only one wallpaper, so --loop is disabled");
+        opts.loop = 0;
+    }
+    iter = head;
 
-static Pixmap WEGetNextWallpaper(Pixmap origin, pixmap_list **current_pointer) {
-    static pixmap_list *pmap_l = NULL;
-    static pixmap_list *pmap_l_head = NULL;
-    static char is_list_build = 0;
-    static char more_than_one_wallpaper = 1;
+    int num_to_preload = min(num_wallpaper, MAX_WALLPAPER_PRELOAD);
+    if (opts.dt >= MIN_FIFO_ENABLE_TIME) num_to_preload = opts.fifo ? FIFO_SETP : 2;
+    num_to_preload = min(num_to_preload, num_wallpaper);
+    sem_init(&sem_preloaded, 0, 0);
+    sem_init(&sem_preload_limit, 0, num_to_preload);
+    D("wallpaper to preload: %d", num_to_preload);
 
-    if (!is_list_build) {
-        is_list_build = 1;
-        // build a doubly linked list
-        pmap_l = WEBuildWallpaperList();
-        pmap_l_head = pmap_l;
+    while (1) {
+        WELoadNextImage();
+        int cnt = opts.fifo ? FIFO_SETP : 1;
+        while (cnt--) {
+            P(sem_preload_limit);
+            if (iter->pmap == 0) {
+                P(sem_xlock);
 
-        // render immediately
-        if (opts.dt < MIN_FIFO_ENABLE_TIME) {
-            // render out all possible wallpapers
-            // ignore fifo
-            WERenderAllWallpaper(pmap_l);
-        }
+                iter->pmap = XCreatePixmap(disp, root, scr->width, scr->width, depth);
+                if (opts.fifo) WECopyPixmap(disp, iter->pmap, origin);
 
-        pixmap_list *iter = pmap_l;
-        for (int i = 0; i < (opts.fifo ? FIFO_SETP : 1); ++i) {
+                if (sig_exit) { V(sem_xlock); return; }
+                WERenderCurrentImageToPixmap(
+                    iter->pmap,
+                    cnt == 0 ? 255 : (int)(255. - 255. / FIFO_SETP * cnt)
+                );
+
+                iter->status = UNUSED;
+
+                V(sem_xlock);
+                V(sem_preloaded);
+
+                int num_preloaded;
+                sem_getvalue(&sem_preloaded, &num_preloaded);
+                if (num_preloaded == num_to_preload) V(sem_start);
+            } else {
+                V(sem_preload_limit);
+            }
             iter = iter->next;
         }
-        if (iter == pmap_l) more_than_one_wallpaper = 0;
+        origin = iter->prev->pmap;
+        current_pixmap = origin;
     }
+}
 
-    pixmap_list *head = pmap_l;
-    if (pmap_l->pmap == 0) { // lazy rendering
-        pixmap_list *next_image_first_pixmap = WERenderAStep(pmap_l, origin);
+static void WEFreePixmapAsync() {
+    pixmap_list *iter = pmap_l_head;
 
-        static char is_first_cycle = 1;
-        if (is_first_cycle && next_image_first_pixmap == pmap_l_head && opts.loop) {
-            // the next cycle is the second cycle
-            // the next pixmap is the first pixmap
-            pixmap_list *iter = next_image_first_pixmap;
+    while (1) {
+        P(sem_used);
+        if (iter->status == USED) {
+            if (iter->pmap && iter->pmap != current_pixmap) {
+                D("XFreePixmap: %lu", iter->pmap);
 
-            if (head == pmap_l_head) {
-                // current pixmap is the first pixmap
-                // this means there is only one possible wallpaper
-                DI("only one wallpaper, --loop was disabled.");
-                opts.loop = 0;
-            } else {
-                // free first pixmap and mark for re-rendering
-                int cnt = opts.fifo ? FIFO_SETP : 0;
-                while (cnt--) {
-                    do {
-                        if (iter->pmap == current_pixmap) break;
-                        if (iter->pmap == 0) break;
+                P(sem_xlock);
+                if (sig_exit) { V(sem_xlock); return; }
+                XFreePixmap(disp, iter->pmap);
+                V(sem_xlock);
 
-                        D("Free pixmap %lu", iter->pmap);
-                        XFreePixmap(disp, iter->pmap);
-                        iter->pmap = 0;
-                    } while (0);
-                    iter = iter->next;
-                }
+                iter->pmap = 0;
+                iter->status = UNUSED;
+
+                P(sem_preloaded);
+                V(sem_preload_limit);
             }
-            is_first_cycle = 0;
+        } else {
+            V(sem_used);
         }
+        iter = iter->next;
     }
-    if (opts.less_memory && more_than_one_wallpaper) {
-        pixmap_list *to_free = pmap_l->prev->prev;
-        do {
-            if (opts.dt < MIN_FIFO_ENABLE_TIME) break;
-            if (to_free->pmap == current_pixmap) break;
-            if (to_free == pmap_l) break;
-            if (to_free->pmap == 0) break;
+}
 
-            D("Free pixmap %lu", to_free->pmap);
-            XFreePixmap(disp, to_free->pmap);
-            to_free->pmap = 0;
-        } while (0);
-    }
-    if (current_pointer != NULL) *current_pointer = pmap_l;
-    pmap_l = pmap_l->next;
-    return pmap_l->prev->pmap;
+static Pixmap WEGetNextWallpaper() {
+    static pixmap_list *iter = NULL;
+    if (iter == NULL) iter = pmap_l_head;
+
+    if (iter->pmap == 0) return 0;
+
+    pmap_l_now = iter;
+    iter = iter->next;
+    return iter->prev->pmap;
 }
 
 static void WEExit() {
-    if (current_pixmap == 0) return;
-    Pixmap to_free = current_pixmap;
+    if (current_wallpaper == 0) return;
+    Pixmap tofree = current_wallpaper;
 
+    sem_init(&sem_xlock, 0, 1);
+    sig_exit = 1;
+
+    P(sem_xlock);
     // open new display
     Display *disp2 = XOpenDisplay(NULL);
     assert(disp2, "Can not reopen display");
@@ -241,7 +248,7 @@ static void WEExit() {
     // copy current pixmap to new display
     Pixmap pmap_final = XCreatePixmap(disp2, root2, scr->width, scr->height, depth);
 
-    WECopyPixmap(disp2, pmap_final, current_pixmap);
+    WECopyPixmap(disp2, pmap_final, tofree);
 
     XSync(disp, False);
     XSync(disp2, False);
@@ -250,15 +257,17 @@ static void WEExit() {
     WESetWallpaper(disp2, pmap_final);
     XSetCloseDownMode(disp2, RetainPermanent);
 
-    D("Free pixmap %lu", to_free);
-    XFreePixmap(disp, to_free);
+    D("Free pixmap %lu", tofree);
+    XFreePixmap(disp, tofree);
 
     XCloseDisplay(disp2);
+    V(sem_xlock);
 
-    if (opts.bgm != NULL){
-        // pthread_kill(bgm_pthread, SIGINT);
-        WEAtoolsDestruct();
-    }
+    sem_destroy(&sem_preloaded);
+    sem_destroy(&sem_preload_limit);
+    sem_destroy(&sem_start);
+    sem_destroy(&sem_xlock);
+    sem_destroy(&sem_used);
 }
 
 static void WESigintHandler(int signo) {
@@ -272,51 +281,81 @@ static void WESigintHandler(int signo) {
 }
 
 void WESetWallpaperByOptions() {
+    // fix options
+    if (opts.dt < MIN_FIFO_ENABLE_TIME) opts.fifo = 0;
+    // catch SIGING
     if (signal(SIGINT, WESigintHandler) == SIG_ERR) {
         DW("Can not catch SIGINT");
     }
-    Pixmap origin = WEGetCurrentWallpaperOrCreate();
-    D("current: %lu", origin);
-    pixmap_list *pmap_head = NULL, *current_pmap_pointer = NULL;
-    Pixmap iter = 0;
 
-    while (1) {
-        int cnt = (opts.fifo && opts.dt >= MIN_FIFO_ENABLE_TIME) ? FIFO_SETP : 1;
+    // steps for a wallpaper
+    int steps = opts.fifo ? FIFO_SETP : 1;
 
-        while (cnt--) {
-            if (pmap_head == NULL) {
-                iter = WEGetNextWallpaper(origin, &current_pmap_pointer);
-                pmap_head = current_pmap_pointer;
-                if (opts.bgm != NULL) {
-                    WEAtoolsInit(opts.bgm);
-                    pthread_create(&bgm_pthread, NULL, (void*)WEAtoolsPlay, NULL);
-                }
-            } else {
-                iter = WEGetNextWallpaper(current_pixmap, &current_pmap_pointer);
-            }
-
-            WESetWallpaper(disp, iter);
-            if (cnt) usleep((int)(0.61f / FIFO_SETP * 1000000));
-        }
-
-        if (current_pmap_pointer->next == pmap_head && !opts.loop) break;
-        usleep((int)(opts.dt * 1000000));
+    // thread bgm
+    if (opts.bgm != NULL) {
+        WEAtoolsInit(opts.bgm);
+        pthread_create(&bgm_pthread, NULL, (void*)WEAtoolsPlay, NULL);
     }
 
-    current_pmap_pointer = pmap_head;
+    // init semaphore
+    sem_init(&sem_start, 0, 0);
+    sem_init(&sem_xlock, 0, 1);
+    sem_init(&sem_used , 0, 0);
+    sig_exit = 0;
+
+    // thread load image
+    pthread_create(&wallpaper_render_pthead, NULL, (void*)WERenderWallpaperAsync, NULL);
+
+    // waiting to start
+    P(sem_start);
+    pthread_create(&pixmap_free_pthread, NULL, (void*)WEFreePixmapAsync, NULL);
+    if (opts.bgm != NULL) V(sem_bgm_start);
+
+    // set wallpaper
+    // operate with different displays to avoid blocking WESetWallpaper
+    Display *disp2 = XOpenDisplay(NULL);
+    assert(disp2, "can not reopen X display");
+    while (1) {
+        if (pmap_l_now->next == pmap_l_head && current_wallpaper) {
+            if (!opts.loop) break;
+        }
+        if (current_wallpaper) fsleep(opts.dt);
+        for (int i = 0; i < steps; ++i) {
+            Pixmap todraw = WEGetNextWallpaper();
+            if (todraw == 0) {
+                DW("Frame loss");
+            } else {
+                WESetWallpaper(disp2, todraw);
+
+                if (pmap_l_now->prev->status == USING) {
+                    pmap_l_now->prev->status = USED;
+                    V(sem_used);
+                }
+                pmap_l_now->status = USING;
+            }
+            if (i != steps - 1) fsleep(FIFO_DURATION / FIFO_SETP);
+        }
+    }
+    XCloseDisplay(disp2);
+
+    // free pixmaps
+    P(sem_xlock);
+    pixmap_list *iter = pmap_l_head;
     do {
         do {
-            if (current_pmap_pointer->pmap == current_pixmap) break;
-            if (current_pmap_pointer->pmap == 0) break;
+            if (iter->pmap == 0) break;
+            if (iter->pmap == current_wallpaper) break;
 
-            D("Free pixmap %lu", current_pmap_pointer->pmap);
-            XFreePixmap(disp, current_pmap_pointer->pmap);
+            D("Free Pixmap %lu", iter->pmap);
+            XFreePixmap(disp, iter->pmap);
+            iter->pmap = 0;
         } while (0);
-        current_pmap_pointer = current_pmap_pointer->next;
-    } while (current_pmap_pointer != pmap_head);
-
-    D("Free pixmap %lu", origin);
-    XFreePixmap(disp, origin);
+        iter = iter->next;
+    } while (iter != pmap_l_head);
+    D("Free Origin Pixmap %lu", origin_pixmap);
+    XFreePixmap(disp, origin_pixmap);
+    sig_exit = 1;
+    V(sem_xlock);
 
     WEExit();
 }

@@ -126,7 +126,7 @@ void WECopyPixmap(Display* disp, Pixmap pm_d, Pixmap pm_s) {
     static XGCValues gcvalues;
     static GC gc;
 
-    D("copy pixmap %lu to %lu", pm_s, pm_d);
+    // D("copy pixmap %lu to %lu", pm_s, pm_d);
     gcvalues.fill_style = FillTiled;
     gcvalues.tile = pm_s;
     gc = XCreateGC(disp, pm_d, GCFillStyle | GCTile, &gcvalues);
@@ -176,26 +176,14 @@ void WELoadNextImage() {
             image_list *phead = im_m[i];
             image_list *piter = phead;
 
-            if (opts.dt < MIN_FIFO_ENABLE_TIME) {
-                D("loading %s", fiter->file_name);
-                piter->im = imlib_load_image(fiter->file_name);
-                assert(piter->im, "Can not load %s", opts.monitor[i]->file_name);
-            } else {
-                piter->im = NULL;
-            }
+            piter->im = NULL;
             fiter = fiter->next;
 
             while (fiter != fhead) {
                 piter->next = (image_list*)malloc(sizeof(image_list));
                 piter->next->prev = piter;
                 piter = piter->next;
-                if (opts.dt < MIN_FIFO_ENABLE_TIME) {
-                    D("loading %s", fiter->file_name);
-                    piter->im = imlib_load_image(fiter->file_name);
-                    assert(piter->im, "Can not load %s", opts.monitor[i]->file_name);
-                } else {
-                    piter->im = NULL;
-                }
+                piter->im = NULL;
                 fiter = fiter->next;
             }
             piter->next = phead;
