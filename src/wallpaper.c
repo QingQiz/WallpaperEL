@@ -152,7 +152,7 @@ static void WERenderWallpaperAsync() {
     }
     iter = head;
 
-    int num_to_preload = min(num_wallpaper, MAX_WALLPAPER_PRELOAD);
+    int num_to_preload = min(num_wallpaper, opts.max_preload);
     if (opts.dt >= MIN_FIFO_ENABLE_TIME) num_to_preload = opts.fifo ? FIFO_SETP : 2;
     num_to_preload = min(num_to_preload, num_wallpaper);
     sem_init(&sem_preloaded, 0, 0);

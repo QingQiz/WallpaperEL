@@ -21,6 +21,7 @@ typedef struct {
     char *bgm;
     char bgm_loop;
     float dt;
+    int max_preload;
 } we_option;
 
 enum we_long_opt {
@@ -32,6 +33,7 @@ enum we_long_opt {
     WE_LESS_MEMORY,
     WE_BGM,
     WE_BGM_LOOP,
+    WE_WALLPAPER_MAX_PRELOAD
 };
 
 extern we_option opts;

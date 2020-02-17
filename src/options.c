@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include "string.h"
 
+#include "wallpaper.h"
 #include "options.h"
 #include "debug.h"
 #include "imtools.h"
@@ -16,6 +17,7 @@ static struct option long_options[] = {
     {"less-memory",   no_argument,       0, WE_LESS_MEMORY},
     {"bgm",           required_argument, 0, WE_BGM},
     {"bgm-loop",      no_argument,       0, WE_BGM_LOOP},
+    {"max-preload",   required_argument, 0, WE_WALLPAPER_MAX_PRELOAD},
     {0,               0,                 0, 0},
 };
 we_option opts;
@@ -24,6 +26,7 @@ we_option opts;
 static void init_opts() {
     memset(&opts, 0, sizeof(opts));
     opts.dt = 60;
+    opts.max_preload = MAX_WALLPAPER_PRELOAD;
 }
 
 void usage() {
@@ -85,6 +88,9 @@ void WEParseOpts(int argc, char **argv) {
                 break;
             case WE_BGM_LOOP:
                 opts.bgm_loop = 1;
+                break;
+            case WE_WALLPAPER_MAX_PRELOAD:
+                opts.max_preload = atoi(optarg);
                 break;
             case 'm':
                 if (*optarg == 'l') {
