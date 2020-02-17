@@ -81,6 +81,9 @@ test_less_memort() {
 test_bgm() {
 	ask "test bgm"
 	./we -m0 $i3 $i1 -t 5 --loop --fifo --bgm ./b.wav
+
+	ask "test bgm with --bgm-loop"
+	./we -m0 $i3 $i1 -t 5 --loop --fifo --bgm ./b.wav --bgm-loop
 }
 
 query_n_exec "test -ml ?" test_mmonitor
