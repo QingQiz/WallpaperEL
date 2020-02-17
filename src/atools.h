@@ -1,7 +1,7 @@
 #ifndef _ATOOLS_H
 #define _ATOOLS_H
-#include <pthread.h>
 #include <alsa/asoundlib.h>
+#include <semaphore.h>
 #define ALSA_PCM_NEW_HW_PARAMS_API
 
 // WAVE file header format
@@ -65,5 +65,7 @@ typedef struct AUDIO_HEADER_T {
 void WEAtoolsDestruct();
 void WEAtoolsPlay();
 void WEAtoolsInit(char *filename);
+
+extern sem_t sem_bgm_start;
 #endif
 

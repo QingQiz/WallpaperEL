@@ -7,6 +7,8 @@
 snd_pcm_t *handler;
 snd_pcm_hw_params_t *params;
 
+sem_t sem_bgm_start;
+
 char *org_data = NULL;
 size_t org_size;
 
@@ -194,11 +196,14 @@ void WEAtoolsInit(char *filename) {
     assert(rc >= 0, "unable to set hw parameters: %s", snd_strerror(rc));
 
     WEAtoolsLoadPcmData();
+    sem_init(&sem_bgm_start, 0, 0);
 }
 
 void WEAtoolsDestruct() {
     snd_pcm_drain(handler);
     snd_pcm_close(handler);
+
+    sem_destroy(&sem_bgm_start);
 
     if (org_data) free(org_data);
     if (pcm_data) free(pcm_data);
@@ -209,6 +214,7 @@ void WEAtoolsPlay() {
     size_t buffer_size = header.bits_per_sample / 8 * header.channels * header.sample_size;
     char *buffer = buffer = (char*)malloc(buffer_size);
 
+    P(sem_bgm_start);
     while (1) {
         while (WEAtoolsReadDataFromPcm(buffer, buffer_size) == 0) {
             snd_pcm_writei(handler, buffer, header.sample_size);
