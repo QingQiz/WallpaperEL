@@ -1,6 +1,7 @@
 #include <string.h>
 #include <signal.h>
 
+#include "options.h"
 #include "atools.h"
 #include "debug.h"
 
@@ -220,8 +221,11 @@ void WEAtoolsPlay() {
     while (1) {
         while (WEAtoolsReadDataFromPcm(buffer, buffer_size) == 0) {
             snd_pcm_writei(handler, buffer, header.sample_size);
-            if (sig_exit) {WEAtoolsDestruct(); return;}
+            if (sig_exit) goto __EXIT;
         }
+        if (!opts.bgm_loop) break;
     }
+__EXIT:
+    WEAtoolsDestruct();
     free(buffer);
 }

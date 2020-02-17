@@ -16,6 +16,7 @@ OPTIONS
               --less-memory     Free up memory immediately after the image or pixmap is used,
                                 not enabled by default
               --bgm             Set background music (only supports wav)
+              --bgm-loop        Loop background music
 
 EXAMPLE
  " PACKAGE " -m0 a.jpg -m2 b.jpg --else c.png d.png e.png -t 20 --fifo
