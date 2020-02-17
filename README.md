@@ -22,14 +22,17 @@ sudo make install
 we --help
 ```
 
-## TODO
+## Example
 
-- Features
-  - more filling method
-  - video wallpaper
-    
-- FIXME
-  - images should be loaded asynchornously using multiple threads
+- use video as wallpaper (need ffmpeg)
+
+```shell
+mkdir -p video
+ffmpeg -i video.mp4 -vf fps=25 vcut/frame%04d.png
+ffmpeg -i video.mp4 video.wav
+cd video
+we -m0 frame* --bgm video.wav -t 0.04 --less-memory --max-preload 180
+```
 
 ## Testing
 
@@ -40,4 +43,11 @@ cd test
 ```
 
 This requires you to observe whether the wallpaper switch is as expected.
+
+## TODO
+
+- Features
+  - more filling method
+    
+- FIXME
 
