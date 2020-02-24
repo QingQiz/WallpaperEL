@@ -4,17 +4,18 @@
 #include <X11/Xlib.h>
 #include <semaphore.h>
 
-#define MAX_WALLPAPER_PRELOAD 128
+#define MAX_WALLPAPER_PRELOAD 32
 
 #define FIFO_SETP 12
 #define FIFO_DURATION 0.61f
-#define MIN_FIFO_ENABLE_TIME 1.5
+#define MIN_FIFO_ENABLE_TIME 0
 
 
 typedef enum {
     UNUSED = 0,
     USING,
-    USED
+    USED,
+    FREED,
 } pmapl_status_t;
 
 typedef struct pixmap_list_s {

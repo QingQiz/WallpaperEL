@@ -3,9 +3,14 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#define DE(format, args...) fprintf(stderr, "(\033[31;1mEE\033[m)  "format"\n", ##args);exit(-1)
-#define DW(format, args...) fprintf(stderr, "(\033[33;1mWW\033[m)  "format"\n", ##args)
-#define DI(format, args...) fprintf(stderr, "(\033[34;1mII\033[m)  "format"\n", ##args)
+#define DE(format, args...) { \
+    fprintf(stderr, "(\033[31;1mEE\033[m)  "format"\n", ##args); \
+    exit(-1); \
+}
+#define DW(format, args...) \
+    fprintf(stderr, "(\033[33;1mWW\033[m)  "format"\n", ##args)
+#define DI(format, args...) \
+    fprintf(stderr, "(\033[34;1mII\033[m)  "format"\n", ##args)
 
 #define P(sem) sem_wait(&sem)
 #define V(sem) sem_post(&sem)
@@ -23,7 +28,15 @@
 #endif
 
 #undef assert
-#define assert(ast, format, args...) if(!(ast)) {DE(format, ##args);exit(-1);}
+#define assert(ast, format, args...) if(!(ast)) DE(format, ##args)
 
+#define Async_call(func_name, pth_name) \
+    pthread_create(&pth_name, NULL, (void*)(func_name), NULL)
+
+#define Await(pth_name) \
+    if (pth_name) { \
+        pthread_join(pth_name, NULL); \
+        pth_name = 0; \
+    }
 #endif
 

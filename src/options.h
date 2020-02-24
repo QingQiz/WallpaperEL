@@ -20,7 +20,7 @@ typedef struct {
     char less_memory;
     char *bgm;
     char bgm_loop;
-    float dt;
+    double dt;
     int max_preload;
 } we_option;
 

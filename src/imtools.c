@@ -30,7 +30,7 @@ static int WEXErrorHandler(Display *d, XErrorEvent *e) {
 }
 
 void WEImtoolsInit() {
-    XSetErrorHandler(WEXErrorHandler);
+    // XSetErrorHandler(WEXErrorHandler);
 
     disp = XOpenDisplay(NULL);
     assert(disp, "Can't open X display");
