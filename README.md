@@ -8,6 +8,7 @@
 - Imlib2
 - libX11
 - libXrandr
+- libasound2
 
 ## Install
 
@@ -28,10 +29,10 @@ we --help
 
 ```shell
 mkdir -p video
-ffmpeg -i video.mp4 -vf fps=25 vcut/frame%04d.png
+ffmpeg -i video.mp4 -vf fps=25 video/frame%04d.png
 ffmpeg -i video.mp4 video.wav
 cd video
-we -m0 frame* --bgm video.wav -t 0.04 --less-memory --max-preload 180
+we -m0 frame* --bgm video.wav -t 0.04 --less-memory --max-preload 5
 ```
 
 ## Testing

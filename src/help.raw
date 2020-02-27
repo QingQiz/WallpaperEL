@@ -9,15 +9,13 @@ OPTIONS
  -mX FILE                       Specify FILE as the wallpaper for monitor X
               --else FILE       If this option is set, all monitors NOT specified by -mX will use FILE
               --fifo            Set the transition effect of the wallpaper to fade in and fade out
- -t dt                          Slideshow wallpaper interval.  60 by default
-                                --fifo will be ignored when this value is less than 1.5
+ -t dt                          Slideshow wallpaper interval. 60 by default
               --loop            slideshow wallpaper loop
               --ignore-current  Create a new wallpaper instead of rendering on the current wallpaper
-              --less-memory     Free up memory immediately after the image or pixmap is used,
-                                not enabled by default
+              --less-memory     Free up memory immediately after the image is used
               --bgm             Set background music (only supports wav)
               --bgm-loop        Loop background music
-              --max-preload     Maximum number of preloaded wallpapers, 128 by default
+              --max-preload     Maximum number of preloaded wallpapers, 32 by default
 
 EXAMPLE
  " PACKAGE " -m0 a.jpg -m2 b.jpg --else c.png d.png e.png -t 20 --fifo
