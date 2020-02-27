@@ -318,7 +318,7 @@ void WESetWallpaperByOptions() {
         opts.fifo = 0;
     }
     opts.dt -= 0.0007;
-    opts.dt = opts.fifo < 0 ? 0: opts.fifo;
+    opts.dt = opts.dt < 0 ? 0: opts.dt;
     // catch SIGING
     if (signal(SIGINT, WESigintHandler) == SIG_ERR) {
         DW("Can not catch SIGINT");
