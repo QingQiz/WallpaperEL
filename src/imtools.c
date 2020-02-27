@@ -3,7 +3,7 @@
 #include <X11/Xlib.h>
 
 #include "imtools.h"
-#include "common.h""
+#include "common.h"
 #include "options.h"
 
 Display *disp = NULL;
