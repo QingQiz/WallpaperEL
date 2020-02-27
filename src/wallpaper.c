@@ -8,7 +8,7 @@
 #include "imtools.h"
 #include "options.h"
 #include "atools.h"
-#include "debug.h"
+#include "common.h"
 
 static Pixmap current_wallpaper = 0, origin_pixmap = 0, current_pixmap = 0;
 static pthread_t bgm_pthread, wallpaper_render_pthread, pixmap_free_pthread;

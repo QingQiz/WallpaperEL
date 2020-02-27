@@ -4,7 +4,7 @@
 
 #include "wallpaper.h"
 #include "options.h"
-#include "debug.h"
+#include "common.h"
 #include "imtools.h"
 
 static struct option long_options[] = {

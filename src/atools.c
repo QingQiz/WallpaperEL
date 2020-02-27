@@ -3,7 +3,7 @@
 
 #include "options.h"
 #include "atools.h"
-#include "debug.h"
+#include "common.h"
 
 snd_pcm_t *handler;
 snd_pcm_hw_params_t *params;
